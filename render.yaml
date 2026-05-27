@@ -3,7 +3,6 @@ services:
   - type: web
     name: dealer-inventory-backend
     env: node
-    plan: free
     rootDir: server
     buildCommand: node ../scripts/switch-db.js postgres && npm install && npx prisma generate
     startCommand: npx prisma migrate deploy && npm start
@@ -23,7 +22,6 @@ services:
   - type: web
     name: dealer-inventory-frontend
     runtime: static
-    plan: free
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -36,5 +34,4 @@ services:
 
 databases:
   - name: dealer-inventory-db
-    plan: free
     postgresMajorVersion: 15
