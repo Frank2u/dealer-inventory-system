@@ -1,0 +1,122 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      String   @default("admin") // admin, operator
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id              String         @id @default(uuid())
+  name            String
+  sku             String         @unique
+  brand           String
+  categoryId      String
+  category        Category       @relation(fields: [categoryId], references: [id])
+  lotSize         Int            @default(1)
+  unitType        String         @default("pcs") // pcs, box, kg, etc.
+  purchasePrice   Float
+  sellingPrice     Float
+  currentStock    Int            @default(0)
+  minStockAlert   Int            @default(5)
+  expiryDate      DateTime?
+  stockEntries    StockEntry[]
+  deliveryItems   DeliveryItem[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Shop {
+  id             String     @id @default(uuid())
+  name           String
+  ownerName      String
+  phone          String
+  alternatePhone String?
+  address        String
+  area           String
+  gstNumber      String?
+  creditLimit    Float      @default(0)
+  notes          String?
+  currentDue     Float      @default(0)
+  deliveries     Delivery[]
+  payments       Payment[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model StockEntry {
+  id            String   @id @default(uuid())
+  supplierName  String
+  invoiceNumber String
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity      Int
+  costPrice     Float
+  date          DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Delivery {
+  id             String         @id @default(uuid())
+  deliveryNumber String         @unique // invoice number
+  shopId         String
+  shop           Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deliveryDate   DateTime       @default(now())
+  totalAmount    Float
+  paidAmount     Float          @default(0)
+  remainingDue   Float
+  paymentStatus  String         @default("unpaid") // paid, partial, unpaid
+  items          DeliveryItem[]
+  payments       Payment[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model DeliveryItem {
+  id          String   @id @default(uuid())
+  deliveryId  String
+  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  lotSize     Int      @default(1)
+  price       Float
+  totalAmount Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Payment {
+  id            String    @id @default(uuid())
+  shopId        String
+  shop          Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deliveryId    String?
+  delivery      Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  paidAmount    Float
+  paymentDate   DateTime  @default(now())
+  paymentMethod String    @default("CASH") // CASH, UPI, CARD, CHEQUE, BANK_TRANSFER
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
