@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "db:generate": "npx.cmd prisma generate",
-    "db:migrate": "npx.cmd prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js"
   },
   "prisma": {

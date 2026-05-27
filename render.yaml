@@ -1,0 +1,40 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: dealer-inventory-backend
+    env: node
+    plan: free
+    rootDir: server
+    buildCommand: node ../scripts/switch-db.js postgres && npm install && npx prisma generate
+    startCommand: npx prisma migrate deploy && npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dealer-inventory-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+
+  # Frontend Static Site
+  - type: web
+    name: dealer-inventory-frontend
+    env: static
+    plan: free
+    rootDir: client
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: dealer-inventory-backend
+          property: host
+
+databases:
+  - name: dealer-inventory-db
+    plan: free
+    postgresMajorVersion: 15
