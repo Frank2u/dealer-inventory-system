@@ -8,10 +8,13 @@ if (target !== 'sqlite' && target !== 'postgres') {
   process.exit(1);
 }
 
-const rootDir = process.cwd();
-const schemaPath = path.join(rootDir, 'server', 'prisma', 'schema.prisma');
-const envPath = path.join(rootDir, 'server', '.env');
-const envExamplePath = path.join(rootDir, 'server', '.env.example');
+const currentDir = process.cwd();
+const isInsideServer = currentDir.endsWith('server') || fs.existsSync(path.join(currentDir, 'prisma', 'schema.prisma'));
+const serverDir = isInsideServer ? currentDir : path.join(currentDir, 'server');
+
+const schemaPath = path.join(serverDir, 'prisma', 'schema.prisma');
+const envPath = path.join(serverDir, '.env');
+const envExamplePath = path.join(serverDir, '.env.example');
 
 // Helper to make directory if not exist
 const ensureDir = (filePath) => {
