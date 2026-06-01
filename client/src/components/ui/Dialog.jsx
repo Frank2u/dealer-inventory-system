@@ -35,7 +35,7 @@ export const Dialog = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex justify-center p-4 sm:p-6 no-print">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
@@ -43,10 +43,10 @@ export const Dialog = ({
       />
       
       {/* Modal box */}
-      <div className={`relative w-full max-h-[90vh] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden animate-fade-in ${widthClasses[maxWidth]} ${className}`}>
+      <div className={`relative w-full my-auto max-h-[calc(100vh-32px)] sm:max-h-[calc(100vh-48px)] bg-slate-900 border border-slate-800 rounded-xl shadow-2xl flex flex-col overflow-hidden animate-fade-in ${widthClasses[maxWidth]} ${className}`}>
         
         {/* Header */}
-        <div className="p-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900 flex-shrink-0">
+        <div className="p-3.5 sm:p-5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900 flex-shrink-0">
           <h2 className="text-sm font-bold text-slate-100 tracking-tight">{title}</h2>
           <button
             onClick={onClose}
@@ -57,7 +57,7 @@ export const Dialog = ({
         </div>
 
         {/* Content */}
-        <div className="p-4 overflow-y-auto flex-1 text-xs text-slate-300 min-h-0">
+        <div className="p-3.5 sm:p-5 overflow-y-auto flex-1 text-xs text-slate-300 min-h-0">
           {children}
         </div>
       </div>
