@@ -91,14 +91,15 @@ export const createDelivery = async (req, res, next) => {
           throw new Error(`Insufficient stock for ${product.name}. Available: ${product.currentStock}, Requested: ${qty}`);
         }
 
-        const itemTotal = product.sellingPrice * qty;
+        const price = item.price !== undefined ? parseFloat(item.price) : product.sellingPrice;
+        const itemTotal = price * qty;
         totalAmount += itemTotal;
 
         dbItems.push({
           productId: product.id,
           quantity: qty,
           lotSize: product.lotSize,
-          price: product.sellingPrice,
+          price: price,
           totalAmount: itemTotal
         });
       }

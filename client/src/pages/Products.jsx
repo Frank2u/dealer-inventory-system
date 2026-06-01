@@ -36,10 +36,27 @@ export const Products = () => {
     unitType: 'pcs',
     purchasePrice: '0',
     sellingPrice: '0',
+    companyName: '',
+    companyAddress: '',
+    companyPhone: '',
+    companyGst: '',
+    mrp: '0',
+    discountPercent: '',
     currentStock: '0',
     minStockAlert: '5',
     expiryDate: ''
   });
+
+  const parseDiscountRange = (discountStr) => {
+    if (!discountStr) return { min: 0, max: 0 };
+    const numbers = String(discountStr).match(/\d+(\.\d+)?/g);
+    if (!numbers || numbers.length === 0) return { min: 0, max: 0 };
+    const parsed = numbers.map(Number);
+    if (parsed.length === 1) {
+      return { min: 0, max: parsed[0] };
+    }
+    return { min: parsed[0], max: parsed[1] };
+  };
 
   const loadData = async () => {
     try {
@@ -71,6 +88,12 @@ export const Products = () => {
       unitType: 'pcs',
       purchasePrice: '0',
       sellingPrice: '0',
+      companyName: '',
+      companyAddress: '',
+      companyPhone: '',
+      companyGst: '',
+      mrp: '0',
+      discountPercent: '',
       currentStock: '0',
       minStockAlert: '5',
       expiryDate: ''
@@ -89,6 +112,12 @@ export const Products = () => {
       unitType: prod.unitType,
       purchasePrice: String(prod.purchasePrice),
       sellingPrice: String(prod.sellingPrice),
+      companyName: prod.companyName || '',
+      companyAddress: prod.companyAddress || '',
+      companyPhone: prod.companyPhone || '',
+      companyGst: prod.companyGst || '',
+      mrp: String(prod.mrp || 0),
+      discountPercent: prod.discountPercent || '',
       currentStock: String(prod.currentStock),
       minStockAlert: String(prod.minStockAlert),
       expiryDate: prod.expiryDate ? prod.expiryDate.split('T')[0] : ''
@@ -225,6 +254,7 @@ export const Products = () => {
                   <TableHead>Lot Size</TableHead>
                   <TableHead>Buying Price</TableHead>
                   <TableHead>Selling Price</TableHead>
+                  <TableHead>Total Profit</TableHead>
                   <TableHead>Current Stock</TableHead>
                   <TableHead>Expiry Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -242,11 +272,32 @@ export const Products = () => {
                         </div>
                       </TableCell>
                       <TableCell className="font-mono text-xs text-indigo-400">{prod.sku}</TableCell>
-                      <TableCell className="font-semibold text-slate-300">{prod.brand}</TableCell>
+                      <TableCell className="font-semibold text-slate-300">
+                        <div className="flex flex-col">
+                          <span>{prod.brand}</span>
+                          {prod.companyName && (
+                            <span className="text-[10px] text-slate-500 font-semibold truncate max-w-[120px]" title={prod.companyName}>
+                              {prod.companyName}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-slate-300">{prod.category?.name || 'N/A'}</TableCell>
                       <TableCell className="text-slate-400">{prod.lotSize} pcs</TableCell>
                       <TableCell className="font-semibold text-slate-400">₹{prod.purchasePrice.toFixed(2)}</TableCell>
-                      <TableCell className="font-bold text-slate-200">₹{prod.sellingPrice.toFixed(2)}</TableCell>
+                      <TableCell className="font-bold text-slate-200">
+                        <div className="flex flex-col">
+                          <span>₹{prod.sellingPrice.toFixed(2)}</span>
+                          {prod.mrp > 0 && (
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              MRP: ₹{prod.mrp.toFixed(2)} {prod.discountPercent && `(${prod.discountPercent})`}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-bold text-emerald-400">
+                        ₹{(prod.profit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <span className={`text-sm font-black ${isLow ? 'text-amber-400' : 'text-slate-200'}`}>
@@ -322,6 +373,38 @@ export const Products = () => {
               />
             </div>
             <div>
+              <Input
+                label="Company Name"
+                placeholder="e.g. Coca-Cola India Pvt Ltd"
+                value={formData.companyName}
+                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Company Address"
+                placeholder="e.g. Gurugram, Haryana"
+                value={formData.companyAddress}
+                onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Company Phone"
+                placeholder="e.g. 18001882653"
+                value={formData.companyPhone}
+                onChange={(e) => setFormData({ ...formData, companyPhone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Company GST PIN"
+                placeholder="e.g. 06AACCC1100F1Z4"
+                value={formData.companyGst}
+                onChange={(e) => setFormData({ ...formData, companyGst: e.target.value })}
+              />
+            </div>
+            <div>
               <Select
                 label="Product Category *"
                 value={formData.categoryId}
@@ -367,6 +450,22 @@ export const Products = () => {
             </div>
             <div>
               <Input
+                label="MRP (INR) *"
+                type="number"
+                value={formData.mrp}
+                onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Approved Discount Range (%)"
+                placeholder="e.g. 12% - 18% or 15%"
+                value={formData.discountPercent}
+                onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
                 label="Purchase Price (INR) *"
                 type="number"
                 value={formData.purchasePrice}
@@ -374,12 +473,28 @@ export const Products = () => {
               />
             </div>
             <div>
-              <Input
-                label="Selling Price (INR) *"
-                type="number"
-                value={formData.sellingPrice}
-                onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-              />
+              <div className="flex flex-col gap-1">
+                <Input
+                  label="Selling Price (INR) *"
+                  type="number"
+                  value={formData.sellingPrice}
+                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
+                />
+                {(() => {
+                  const { min, max } = parseDiscountRange(formData.discountPercent);
+                  const mrpVal = parseFloat(formData.mrp) || 0;
+                  if (mrpVal > 0 && formData.discountPercent) {
+                    const minPrice = mrpVal * (1 - max / 100);
+                    const maxPrice = mrpVal * (1 - min / 100);
+                    return (
+                      <span className="text-[10px] text-emerald-400 font-semibold px-1">
+                        Approved Range: ₹{minPrice.toFixed(2)} - ₹{maxPrice.toFixed(2)}
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
             </div>
             <div>
               <Input

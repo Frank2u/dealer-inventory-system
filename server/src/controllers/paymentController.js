@@ -24,7 +24,7 @@ export const getAllPayments = async (req, res, next) => {
 
 export const createPayment = async (req, res, next) => {
   try {
-    const { shopId, deliveryId, paidAmount, paymentDate, paymentMethod, notes } = req.body;
+    const { shopId, deliveryId, deliveryIds, paidAmount, paymentDate, paymentMethod, notes } = req.body;
 
     if (!shopId || !paidAmount) {
       return res.status(400).json({ message: 'Shop and Paid Amount are required' });
@@ -37,69 +37,92 @@ export const createPayment = async (req, res, next) => {
 
     const payDate = paymentDate ? new Date(paymentDate) : new Date();
 
-    const payment = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Verify Shop
       const shop = await tx.shop.findUnique({ where: { id: shopId } });
       if (!shop) {
         throw new Error('Shop not found');
       }
 
-      let paymentRecord;
+      // Consolidate target delivery IDs
+      const targetIds = Array.isArray(deliveryIds) 
+        ? deliveryIds 
+        : (deliveryId ? [deliveryId] : []);
 
-      if (deliveryId) {
-        // 2a. Pay specific invoice
-        const delivery = await tx.delivery.findUnique({ where: { id: deliveryId } });
-        if (!delivery) {
-          throw new Error('Delivery invoice not found');
-        }
-        if (delivery.shopId !== shopId) {
-          throw new Error('Delivery invoice does not belong to this shop');
-        }
-
-        if (amountToPay > delivery.remainingDue) {
-          throw new Error(`Payment amount (${amountToPay}) exceeds invoice due (${delivery.remainingDue})`);
-        }
-
-        const newRemainingDue = delivery.remainingDue - amountToPay;
-        const newPaidAmount = delivery.paidAmount + amountToPay;
-        let paymentStatus = 'unpaid';
-        if (newRemainingDue === 0) {
-          paymentStatus = 'paid';
-        } else if (newPaidAmount > 0) {
-          paymentStatus = 'partial';
-        }
-
-        // Update delivery invoice
-        await tx.delivery.update({
-          where: { id: deliveryId },
-          data: {
-            remainingDue: newRemainingDue,
-            paidAmount: newPaidAmount,
-            paymentStatus
-          }
+      if (targetIds.length > 0) {
+        // 2a. Pay specific invoice(s)
+        const deliveries = await tx.delivery.findMany({
+          where: {
+            id: { in: targetIds },
+            shopId
+          },
+          orderBy: { deliveryDate: 'asc' }
         });
 
-        // Update Shop due
-        await tx.shop.update({
-          where: { id: shopId },
-          data: {
-            currentDue: {
-              decrement: amountToPay
+        if (deliveries.length === 0) {
+          throw new Error('No valid delivery invoices found');
+        }
+
+        const totalDueOfSelected = deliveries.reduce((sum, d) => sum + d.remainingDue, 0);
+        if (amountToPay > totalDueOfSelected) {
+          throw new Error(`Payment amount (₹${amountToPay}) exceeds total selected invoice dues (₹${totalDueOfSelected})`);
+        }
+
+        let remainingAllocation = amountToPay;
+        const createdPayments = [];
+
+        for (const delivery of deliveries) {
+          if (remainingAllocation <= 0) break;
+
+          const toAllocate = Math.min(remainingAllocation, delivery.remainingDue);
+          const newRemaining = delivery.remainingDue - toAllocate;
+          const newPaid = delivery.paidAmount + toAllocate;
+          
+          let paymentStatus = 'unpaid';
+          if (newRemaining === 0) {
+            paymentStatus = 'paid';
+          } else if (newPaid > 0) {
+            paymentStatus = 'partial';
+          }
+
+          // Update delivery invoice
+          await tx.delivery.update({
+            where: { id: delivery.id },
+            data: {
+              remainingDue: newRemaining,
+              paidAmount: newPaid,
+              paymentStatus
             }
-          }
-        });
+          });
 
-        // Create Payment
-        paymentRecord = await tx.payment.create({
-          data: {
-            shopId,
-            deliveryId,
-            paidAmount: amountToPay,
-            paymentDate: payDate,
-            paymentMethod: paymentMethod || 'CASH',
-            notes
-          }
-        });
+          // Update Shop due
+          await tx.shop.update({
+            where: { id: shopId },
+            data: {
+              currentDue: {
+                decrement: toAllocate
+              }
+            }
+          });
+
+          // Create individual Payment record
+          const ptRec = await tx.payment.create({
+            data: {
+              shopId,
+              deliveryId: delivery.id,
+              paidAmount: toAllocate,
+              paymentDate: payDate,
+              paymentMethod: paymentMethod || 'CASH',
+              notes: notes || `Payment applied to invoice ${delivery.deliveryNumber}`
+            }
+          });
+
+          createdPayments.push(ptRec);
+          remainingAllocation -= toAllocate;
+        }
+
+        // Return the first created payment
+        return createdPayments[0];
       } else {
         // 2b. General payment on account: Apply FIFO allocation to outstanding invoices
         const outstandingDeliveries = await tx.delivery.findMany({
@@ -148,7 +171,7 @@ export const createPayment = async (req, res, next) => {
         });
 
         // Create Payment (without a specific invoice link, or linked to the first invoice if partially applied)
-        paymentRecord = await tx.payment.create({
+        const paymentRecord = await tx.payment.create({
           data: {
             shopId,
             paidAmount: amountToPay,
@@ -157,14 +180,14 @@ export const createPayment = async (req, res, next) => {
             notes: notes || 'General payment applied to account'
           }
         });
-      }
 
-      return paymentRecord;
+        return paymentRecord;
+      }
     });
 
-    res.status(201).json(payment);
+    res.status(201).json(result);
   } catch (error) {
-    if (error.message.includes('not found') || error.message.includes('exceeds invoice due') || error.message.includes('belong')) {
+    if (error.message.includes('not found') || error.message.includes('exceeds') || error.message.includes('belong') || error.message.includes('No valid')) {
       return res.status(400).json({ message: error.message });
     }
     next(error);

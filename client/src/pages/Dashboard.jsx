@@ -50,8 +50,8 @@ export const Dashboard = () => {
   if (loading) {
     return (
       <div className="p-6 flex flex-col gap-6 animate-pulse">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
+          {[...Array(6)].map((_, i) => (
             <div key={i} className="h-28 bg-slate-900/60 border border-slate-800 rounded-xl" />
           ))}
         </div>
@@ -72,6 +72,13 @@ export const Dashboard = () => {
       bg: 'bg-indigo-500/5 border-indigo-500/10'
     },
     {
+      title: "Total Collections",
+      value: `₹${stats?.totalPaid?.toLocaleString('en-IN') || '0'}`,
+      desc: "Total payments collected from shops",
+      icon: <IndianRupee className="h-5 w-5 text-emerald-400" />,
+      bg: 'bg-emerald-500/5 border-emerald-500/10'
+    },
+    {
       title: "Outstanding Dues",
       value: `₹${stats?.totalUnpaid?.toLocaleString('en-IN') || '0'}`,
       desc: "Total remaining credit dues",
@@ -79,11 +86,18 @@ export const Dashboard = () => {
       bg: 'bg-rose-500/5 border-rose-500/10'
     },
     {
+      title: "Net Profit",
+      value: `₹${stats?.totalProfit?.toLocaleString('en-IN') || '0'}`,
+      desc: "Cumulative gross net profit margin",
+      icon: <TrendingUp className="h-5 w-5 text-purple-450" />,
+      bg: 'bg-purple-500/5 border-purple-500/10'
+    },
+    {
       title: "Products Catalog",
       value: stats?.totalProducts || 0,
       desc: `${stats?.lowStockCount || 0} products low in stock`,
-      icon: <Package className="h-5 w-5 text-emerald-400" />,
-      bg: 'bg-emerald-500/5 border-emerald-500/10'
+      icon: <Package className="h-5 w-5 text-blue-400" />,
+      bg: 'bg-blue-500/5 border-blue-500/10'
     },
     {
       title: "Active Retailers",
@@ -114,7 +128,7 @@ export const Dashboard = () => {
       )}
 
       {/* 2. Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
         {cardItems.map((item, idx) => (
           <Card key={idx} className={`${item.bg} hover:-translate-y-0.5 transition-all duration-200`}>
             <CardContent className="p-5 flex items-start justify-between">
@@ -193,6 +207,75 @@ export const Dashboard = () => {
             ) : (
               <div className="h-full flex items-center justify-center text-xs font-semibold text-slate-500">
                 No outstanding customer dues recorded
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+      </div>
+
+      {/* Profits Analysis section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-fade-in">
+        
+        {/* Profitable Retailers */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Retailers by Profitability</CardTitle>
+            <CardDescription>Shops contributing the highest net margins</CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            {stats?.topProfitableShops && stats.topProfitableShops.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.topProfitableShops} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.2} horizontal={false} />
+                  <XAxis type="number" stroke="#64748b" fontSize={9} />
+                  <YAxis type="category" dataKey="name" stroke="#64748b" fontSize={9} width={90} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                    itemStyle={{ fontSize: '11px' }}
+                  />
+                  <Bar dataKey="profit" name="Net Profit" radius={[0, 4, 4, 0]} barSize={12} fill="#10b981">
+                    {stats.topProfitableShops.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={barColors[index % barColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-xs font-semibold text-slate-500">
+                No retailer profitability recorded
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Profitable Products */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Products by Profitability</CardTitle>
+            <CardDescription>Product catalog items generating highest margins</CardDescription>
+          </CardHeader>
+          <CardContent className="h-64">
+            {stats?.topProfitableProducts && stats.topProfitableProducts.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.topProfitableProducts} layout="vertical" margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.2} horizontal={false} />
+                  <XAxis type="number" stroke="#64748b" fontSize={9} />
+                  <YAxis type="category" dataKey="name" stroke="#64748b" fontSize={9} width={90} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px' }}
+                    itemStyle={{ fontSize: '11px' }}
+                  />
+                  <Bar dataKey="profit" name="Net Profit" radius={[0, 4, 4, 0]} barSize={12} fill="#6366f1">
+                    {stats.topProfitableProducts.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={barColors[(index + 2) % barColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-xs font-semibold text-slate-500">
+                No product profitability recorded
               </div>
             )}
           </CardContent>

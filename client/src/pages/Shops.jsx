@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api.js';
 import { useToast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -7,10 +8,11 @@ import { Card, CardContent } from '../components/ui/Card.jsx';
 import { Dialog } from '../components/ui/Dialog.jsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
-import { Search, Plus, Eye, Edit2, Trash2, IndianRupee, Phone, MapPin, FileText, ClipboardList } from 'lucide-react';
+import { Search, Plus, Eye, Edit2, Trash2, IndianRupee, Phone, MapPin, FileText, ClipboardList, Truck } from 'lucide-react';
 
 export const Shops = () => {
   const toast = useToast();
+  const navigate = useNavigate();
   const [shops, setShops] = useState([]);
   const [search, setSearch] = useState('');
   const [hasDueOnly, setHasDueOnly] = useState(false);
@@ -209,6 +211,7 @@ export const Shops = () => {
                   <TableHead>GST Number</TableHead>
                   <TableHead>Credit Limit</TableHead>
                   <TableHead>Current Due</TableHead>
+                  <TableHead>Total Profit</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -238,8 +241,19 @@ export const Shops = () => {
                         ₹{shop.currentDue.toLocaleString('en-IN')}
                       </span>
                     </TableCell>
+                    <TableCell className="font-bold text-emerald-450 text-sm">
+                      ₹{(shop.profit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          onClick={() => navigate(`/deliveries?shopId=${shop.id}`)}
+                          variant="ghost"
+                          size="sm"
+                          title="View Deliveries"
+                        >
+                          <Truck className="h-4 w-4 text-emerald-400" />
+                        </Button>
                         <Button
                           onClick={() => handleHistoryOpen(shop)}
                           variant="ghost"

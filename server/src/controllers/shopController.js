@@ -28,10 +28,38 @@ export const getAllShops = async (req, res, next) => {
 
     const shops = await prisma.shop.findMany({
       where,
+      include: {
+        deliveries: {
+          include: {
+            items: {
+              include: {
+                product: true
+              }
+            }
+          }
+        }
+      },
       orderBy
     });
 
-    res.json(shops);
+    const shopsWithProfit = shops.map(s => {
+      let totalProfit = 0;
+      s.deliveries.forEach(d => {
+        d.items.forEach(item => {
+          if (item.product) {
+            totalProfit += item.totalAmount - (item.product.purchasePrice * item.quantity);
+          }
+        });
+      });
+      
+      const { deliveries, ...shopData } = s;
+      return {
+        ...shopData,
+        profit: totalProfit
+      };
+    });
+
+    res.json(shopsWithProfit);
   } catch (error) {
     next(error);
   }

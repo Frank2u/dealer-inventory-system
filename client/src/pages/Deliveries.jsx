@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api.js';
 import { useToast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -8,17 +9,20 @@ import { Card, CardContent } from '../components/ui/Card.jsx';
 import { Dialog } from '../components/ui/Dialog.jsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
-import { Plus, Eye, Trash2, Printer, ShoppingBag, X, Calendar, User, Search, Store } from 'lucide-react';
+import { Plus, Eye, Trash2, Printer, ShoppingBag, X, Calendar, User, Search, Store, AlertCircle, Phone } from 'lucide-react';
 
 export const Deliveries = () => {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+  const shopIdParam = searchParams.get('shopId');
+
   const [deliveries, setDeliveries] = useState([]);
   const [shops, setShops] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [selectedShopId, setSelectedShopId] = useState('');
+  const [selectedShopId, setSelectedShopId] = useState(shopIdParam || '');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
 
   // Modals state
@@ -57,6 +61,17 @@ export const Deliveries = () => {
     loadData();
   }, [selectedShopId, paymentStatusFilter]);
 
+  const parseDiscountRange = (discountStr) => {
+    if (!discountStr) return { min: 0, max: 0 };
+    const numbers = String(discountStr).match(/\d+(\.\d+)?/g);
+    if (!numbers || numbers.length === 0) return { min: 0, max: 0 };
+    const parsed = numbers.map(Number);
+    if (parsed.length === 1) {
+      return { min: 0, max: parsed[0] };
+    }
+    return { min: parsed[0], max: parsed[1] };
+  };
+
   const handleCreateOpen = () => {
     if (shops.length === 0) {
       toast.error('Please register retail shops first');
@@ -70,18 +85,38 @@ export const Deliveries = () => {
     setInvoiceDate(new Date().toISOString().split('T')[0]);
     setInvoicePaidAmount('0');
     setInvoicePaymentMethod('CASH');
-    setInvoiceItems([{ productId: products[0].id, quantity: '1', price: products[0].sellingPrice, currentStock: products[0].currentStock, error: '' }]);
+    
+    const defaultProd = products[0];
+    const initialDiscount = defaultProd.mrp > 0 ? ((defaultProd.mrp - defaultProd.sellingPrice) / defaultProd.mrp) * 100 : 0;
+    setInvoiceItems([
+      {
+        productId: defaultProd.id,
+        quantity: '1',
+        mrp: defaultProd.mrp,
+        discountRange: defaultProd.discountPercent,
+        discountInputType: 'percent',
+        discountVal: initialDiscount > 0 ? initialDiscount.toFixed(1) : '0',
+        price: defaultProd.sellingPrice,
+        currentStock: defaultProd.currentStock,
+        error: ''
+      }
+    ]);
     setIsFormOpen(true);
   };
 
   // Add line item to invoice creator
   const addInvoiceItem = () => {
     const defaultProd = products[0];
+    const initialDiscount = defaultProd.mrp > 0 ? ((defaultProd.mrp - defaultProd.sellingPrice) / defaultProd.mrp) * 100 : 0;
     setInvoiceItems(prev => [
       ...prev,
       {
         productId: defaultProd.id,
         quantity: '1',
+        mrp: defaultProd.mrp,
+        discountRange: defaultProd.discountPercent,
+        discountInputType: 'percent',
+        discountVal: initialDiscount > 0 ? initialDiscount.toFixed(1) : '0',
         price: defaultProd.sellingPrice,
         currentStock: defaultProd.currentStock,
         error: ''
@@ -102,18 +137,51 @@ export const Deliveries = () => {
 
     if (field === 'productId') {
       const prod = products.find(p => p.id === value);
+      const initDiscount = prod && prod.mrp > 0 ? ((prod.mrp - prod.sellingPrice) / prod.mrp) * 100 : 0;
       item.productId = value;
+      item.mrp = prod ? prod.mrp : 0;
+      item.discountRange = prod ? prod.discountPercent : '';
       item.price = prod ? prod.sellingPrice : 0;
       item.currentStock = prod ? prod.currentStock : 0;
+      item.discountVal = initDiscount > 0 ? initDiscount.toFixed(1) : '0';
+      item.discountInputType = 'percent';
       item.error = '';
     } else if (field === 'quantity') {
       item.quantity = value;
-      const qty = parseInt(value) || 0;
-      if (qty > item.currentStock) {
-        item.error = `Only ${item.currentStock} in stock`;
-      } else {
-        item.error = '';
-      }
+    } else if (field === 'discountInputType') {
+      item.discountInputType = value;
+      item.discountVal = '0';
+    } else if (field === 'discountVal') {
+      item.discountVal = value;
+    }
+
+    // Recalculate price and validate discount
+    const mrp = item.mrp || 0;
+    let price = mrp;
+    let discountPercentCalculated = 0;
+
+    if (item.discountInputType === 'percent') {
+      const percent = parseFloat(item.discountVal) || 0;
+      price = mrp - (mrp * percent / 100);
+      discountPercentCalculated = percent;
+    } else {
+      const amount = parseFloat(item.discountVal) || 0;
+      price = mrp - amount;
+      discountPercentCalculated = mrp > 0 ? (amount / mrp) * 100 : 0;
+    }
+
+    item.price = price >= 0 ? price : 0;
+
+    // Validation
+    const qty = parseInt(item.quantity) || 0;
+    const { max } = parseDiscountRange(item.discountRange);
+
+    if (qty > item.currentStock) {
+      item.error = `Only ${item.currentStock} in stock`;
+    } else if (discountPercentCalculated > max) {
+      item.error = `Discount (${discountPercentCalculated.toFixed(1)}%) exceeds max allowed (${max}%)`;
+    } else {
+      item.error = '';
     }
 
     setInvoiceItems(updated);
@@ -136,7 +204,12 @@ export const Deliveries = () => {
       return;
     }
 
-    // Validate stocks
+    // Validate errors and stocks
+    if (invoiceItems.some(item => item.error)) {
+      toast.error('Please resolve all validation errors first');
+      return;
+    }
+
     const itemsToSubmit = [];
     for (const item of invoiceItems) {
       if (!item.productId) {
@@ -152,7 +225,11 @@ export const Deliveries = () => {
         toast.error(`Insufficient stock for one or more items`);
         return;
       }
-      itemsToSubmit.push({ productId: item.productId, quantity: qty });
+      itemsToSubmit.push({
+        productId: item.productId,
+        quantity: qty,
+        price: item.price
+      });
     }
 
     const grandTotal = getInvoiceTotal();
@@ -366,7 +443,7 @@ export const Deliveries = () => {
                 <div key={idx} className="flex flex-col md:grid md:grid-cols-12 gap-3 items-end bg-slate-950/20 border border-slate-900 p-3 rounded-lg relative">
                   
                   {/* Product selector */}
-                  <div className="w-full md:col-span-6">
+                  <div className="w-full md:col-span-4">
                     <Select
                       label={`Item #${idx + 1}`}
                       value={item.productId}
@@ -378,42 +455,75 @@ export const Deliveries = () => {
                         </option>
                       ))}
                     </Select>
-                  </div>
-
-                  {/* Mobile Row container: contains Qty, Total, Remove */}
-                  <div className="flex items-end justify-between w-full md:contents gap-3">
-                    {/* Quantity Input */}
-                    <div className="w-24 md:w-auto md:col-span-3">
-                      <Input
-                        label="Qty *"
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
-                        error={item.error}
-                      />
-                    </div>
-
-                    {/* Rate display */}
-                    <div className="flex flex-col items-end md:items-start gap-1 pb-1 md:col-span-2">
-                      <span className="text-[10px] font-semibold text-slate-500 uppercase">Total</span>
-                      <span className="text-sm font-bold text-slate-200">
-                        ₹{((parseInt(item.quantity) || 0) * item.price).toLocaleString('en-IN')}
+                    {item.productId && (
+                      <span className="text-[9px] text-slate-500 font-bold mt-1 block">
+                        MRP: ₹{(item.mrp || 0).toFixed(2)} | Range: {item.discountRange || '0%'}
                       </span>
-                    </div>
-
-                    {/* Remove line */}
-                    <div className="pb-1 md:pb-1.5 md:col-span-1 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => removeInvoiceItem(idx)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-900 cursor-pointer"
-                        disabled={invoiceItems.length === 1}
-                      >
-                        <X className="h-4.5 w-4.5" />
-                      </button>
-                    </div>
+                    )}
                   </div>
+
+                  {/* Discount Type */}
+                  <div className="w-full md:col-span-2">
+                    <Select
+                      label="Type"
+                      value={item.discountInputType}
+                      onChange={(e) => handleItemChange(idx, 'discountInputType', e.target.value)}
+                    >
+                      <option value="percent" className="bg-slate-900">Discount %</option>
+                      <option value="amount" className="bg-slate-900">Discount ₹</option>
+                    </Select>
+                  </div>
+
+                  {/* Discount Value */}
+                  <div className="w-full md:col-span-2">
+                    <Input
+                      label="Value"
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={item.discountVal}
+                      onChange={(e) => handleItemChange(idx, 'discountVal', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Quantity Input */}
+                  <div className="w-full md:col-span-2">
+                    <Input
+                      label="Qty *"
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Rate display */}
+                  <div className="flex flex-col items-end md:items-start gap-1 pb-2 md:col-span-1">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase">Rate</span>
+                    <span className="text-sm font-bold text-slate-200" title={`Unit price: ₹${item.price.toFixed(2)}`}>
+                      ₹{((parseInt(item.quantity) || 0) * item.price).toLocaleString('en-IN')}
+                    </span>
+                  </div>
+
+                  {/* Remove line */}
+                  <div className="pb-1.5 md:col-span-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeInvoiceItem(idx)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-900 cursor-pointer"
+                      disabled={invoiceItems.length === 1}
+                    >
+                      <X className="h-4.5 w-4.5" />
+                    </button>
+                  </div>
+
+                  {/* Error line */}
+                  {item.error && (
+                    <div className="col-span-12 w-full text-[10px] text-rose-400 font-semibold flex items-center gap-1 mt-1 bg-rose-500/5 px-2.5 py-1.5 rounded border border-rose-500/10">
+                      <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span>{item.error}</span>
+                    </div>
+                  )}
 
                 </div>
               ))}
@@ -535,27 +645,43 @@ export const Deliveries = () => {
               <table className="w-full text-xs text-left border-collapse print-table">
                 <thead>
                   <tr className="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase font-bold">
-                    <th className="p-3">Item Name</th>
-                    <th className="p-3">SKU</th>
-                    <th className="p-3">Brand</th>
-                    <th className="p-3">Unit Pack Size</th>
+                    <th className="p-3">Item Details</th>
                     <th className="p-3 text-right">Qty</th>
-                    <th className="p-3 text-right">Price per Unit</th>
+                    <th className="p-3 text-right">MRP</th>
+                    <th className="p-3 text-right">Approved Disc.</th>
+                    <th className="p-3 text-right">Applied Disc.</th>
+                    <th className="p-3 text-right">Price</th>
                     <th className="p-3 text-right">Line Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-850/60 text-slate-300">
-                  {selectedDelivery.items?.map((item) => (
-                    <tr key={item.id}>
-                      <td className="p-3 font-bold text-slate-200">{item.product?.name}</td>
-                      <td className="p-3 font-mono">{item.product?.sku}</td>
-                      <td className="p-3">{item.product?.brand}</td>
-                      <td className="p-3 text-slate-400 capitalize">{item.lotSize} pcs / {item.product?.unitType}</td>
-                      <td className="p-3 text-right font-bold">{item.quantity}</td>
-                      <td className="p-3 text-right">₹{item.price.toFixed(2)}</td>
-                      <td className="p-3 text-right font-black text-slate-200">₹{item.totalAmount.toLocaleString('en-IN')}</td>
-                    </tr>
-                  ))}
+                  {selectedDelivery.items?.map((item) => {
+                    const mrp = item.product?.mrp || 0;
+                    const price = item.price || 0;
+                    const diff = mrp - price;
+                    const appliedDiscountPercent = mrp > 0 ? (diff / mrp) * 105 : 0; // wait, let's make sure it calculates correctly, diff/mrp*100
+                    const pct = mrp > 0 ? (diff / mrp) * 100 : 0;
+                    return (
+                      <tr key={item.id}>
+                        <td className="p-3 font-bold text-slate-200">
+                          <div className="flex flex-col">
+                            <span>{item.product?.name}</span>
+                            <span className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                              Brand: {item.product?.brand} | SKU: {item.product?.sku} | {item.lotSize} pcs / {item.product?.unitType}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right font-bold">{item.quantity}</td>
+                        <td className="p-3 text-right">₹{mrp.toFixed(2)}</td>
+                        <td className="p-3 text-right text-slate-400">{item.product?.discountPercent || 'N/A'}</td>
+                        <td className="p-3 text-right font-semibold text-emerald-400">
+                          {mrp > 0 && pct > 0 ? `${pct.toFixed(1)}%` : '0%'}
+                        </td>
+                        <td className="p-3 text-right">₹{price.toFixed(2)}</td>
+                        <td className="p-3 text-right font-black text-slate-200">₹{item.totalAmount.toLocaleString('en-IN')}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 

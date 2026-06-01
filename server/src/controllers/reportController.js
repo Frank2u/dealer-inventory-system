@@ -26,6 +26,59 @@ export const getDashboardStats = async (req, res, next) => {
     });
     const totalUnpaid = shopsData.reduce((sum, s) => sum + s.currentDue, 0);
 
+    // Total Paid Amount (sum of all collections)
+    const paymentsData = await prisma.payment.findMany({
+      select: { paidAmount: true }
+    });
+    const totalPaid = paymentsData.reduce((sum, p) => sum + p.paidAmount, 0);
+
+    // Calculate profits (totalProfit, shopProfits, productProfits)
+    const allDeliveryItems = await prisma.deliveryItem.findMany({
+      include: {
+        product: true,
+        delivery: {
+          include: { shop: true }
+        }
+      }
+    });
+
+    let totalProfit = 0;
+    const shopProfitsMap = {};
+    const productProfitsMap = {};
+
+    allDeliveryItems.forEach(item => {
+      if (item.product) {
+        const profit = item.totalAmount - (item.product.purchasePrice * item.quantity);
+        totalProfit += profit;
+
+        // Group by shop
+        if (item.delivery && item.delivery.shop) {
+          const shopId = item.delivery.shopId;
+          const shopName = item.delivery.shop.name;
+          if (!shopProfitsMap[shopId]) {
+            shopProfitsMap[shopId] = { name: shopName, profit: 0 };
+          }
+          shopProfitsMap[shopId].profit += profit;
+        }
+
+        // Group by product
+        const productId = item.productId;
+        const productName = item.product.name;
+        if (!productProfitsMap[productId]) {
+          productProfitsMap[productId] = { name: productName, profit: 0 };
+        }
+        productProfitsMap[productId].profit += profit;
+      }
+    });
+
+    const topProfitableShops = Object.values(shopProfitsMap)
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 5);
+
+    const topProfitableProducts = Object.values(productProfitsMap)
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 5);
+
     // 3. Count products and shops
     const totalProducts = await prisma.product.count();
     const totalShops = await prisma.shop.count();
@@ -115,6 +168,10 @@ export const getDashboardStats = async (req, res, next) => {
       todaySales,
       todayDeliveryCount,
       totalUnpaid,
+      totalPaid,
+      totalProfit,
+      topProfitableShops,
+      topProfitableProducts,
       totalProducts,
       totalShops,
       lowStockCount,

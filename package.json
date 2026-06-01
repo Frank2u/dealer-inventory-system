@@ -8,9 +8,9 @@
     "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
     "build:client": "npm run build --prefix client",
     "start:server": "npm start --prefix server",
-    "db:migrate": "cd server && prisma migrate dev",
-    "db:seed": "cd server && prisma db seed",
-    "db:studio": "cd server && prisma studio",
+    "db:migrate": "cd server && npx prisma migrate dev",
+    "db:seed": "cd server && npx prisma db seed",
+    "db:studio": "cd server && npx prisma studio",
     "use-sqlite": "node scripts/switch-db.js sqlite",
     "use-postgres": "node scripts/switch-db.js postgres"
   },

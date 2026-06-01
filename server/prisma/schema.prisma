@@ -36,6 +36,12 @@ model Product {
   unitType        String         @default("pcs") // pcs, box, kg, etc.
   purchasePrice   Float
   sellingPrice     Float
+  companyName     String         @default("")
+  companyAddress  String         @default("")
+  companyPhone    String         @default("")
+  companyGst      String         @default("")
+  mrp             Float          @default(0.0)
+  discountPercent String         @default("")
   currentStock    Int            @default(0)
   minStockAlert   Int            @default(5)
   expiryDate      DateTime?

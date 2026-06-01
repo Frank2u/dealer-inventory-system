@@ -24,10 +24,11 @@ export const Payments = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Form fields
   const [formShopId, setFormShopId] = useState('');
-  const [formDeliveryId, setFormDeliveryId] = useState('');
+  const [formDeliveryIds, setFormDeliveryIds] = useState([]);
   const [formPaidAmount, setFormPaidAmount] = useState('');
   const [formPaymentDate, setFormPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [formPaymentMethod, setFormPaymentMethod] = useState('CASH');
@@ -69,7 +70,7 @@ export const Payments = () => {
       }
     };
     fetchUnpaid();
-  }, [formShopId]);
+  }, [formShopId, refreshTrigger]);
 
   const handleCreateOpen = () => {
     if (shops.length === 0) {
@@ -77,7 +78,7 @@ export const Payments = () => {
       return;
     }
     setFormShopId(shops[0].id);
-    setFormDeliveryId('');
+    setFormDeliveryIds([]);
     setFormPaidAmount('');
     setFormPaymentDate(new Date().toISOString().split('T')[0]);
     setFormPaymentMethod('CASH');
@@ -85,17 +86,20 @@ export const Payments = () => {
     setIsFormOpen(true);
   };
 
-  // Pre-fill amount when invoice is selected in Form
-  const handleInvoiceSelect = (dlvId) => {
-    setFormDeliveryId(dlvId);
-    if (!dlvId) {
-      setFormPaidAmount('');
-      return;
-    }
-    const dlv = unpaidInvoices.find(d => d.id === dlvId);
-    if (dlv) {
-      setFormPaidAmount(String(dlv.remainingDue));
-    }
+  // Toggle invoice selection and update total sum
+  const handleToggleInvoiceSelection = (dlvId) => {
+    setFormDeliveryIds(prev => {
+      const next = prev.includes(dlvId)
+        ? prev.filter(id => id !== dlvId)
+        : [...prev, dlvId];
+      
+      // Calculate sum and set paid amount
+      const sum = unpaidInvoices
+        .filter(d => next.includes(d.id))
+        .reduce((total, d) => total + d.remainingDue, 0);
+      setFormPaidAmount(sum > 0 ? String(sum) : '');
+      return next;
+    });
   };
 
   const handleFormSubmit = async (e) => {
@@ -112,10 +116,12 @@ export const Payments = () => {
     }
 
     // Validate specific invoice limit
-    if (formDeliveryId) {
-      const dlv = unpaidInvoices.find(d => d.id === formDeliveryId);
-      if (dlv && amount > dlv.remainingDue) {
-        toast.error(`Payment exceeds the invoice due amount of ₹${dlv.remainingDue}`);
+    if (formDeliveryIds.length > 0) {
+      const totalSelectedDue = unpaidInvoices
+        .filter(d => formDeliveryIds.includes(d.id))
+        .reduce((sum, d) => sum + d.remainingDue, 0);
+      if (amount > totalSelectedDue) {
+        toast.error(`Payment exceeds the selected invoices due amount of ₹${totalSelectedDue}`);
         return;
       }
     }
@@ -123,7 +129,7 @@ export const Payments = () => {
     try {
       await api.payments.create({
         shopId: formShopId,
-        deliveryId: formDeliveryId || null,
+        deliveryIds: formDeliveryIds,
         paidAmount: amount,
         paymentDate: formPaymentDate,
         paymentMethod: formPaymentMethod,
@@ -131,6 +137,7 @@ export const Payments = () => {
       });
       toast.success('Collection logged. Outstanding balance reduced!');
       setIsFormOpen(false);
+      setRefreshTrigger(prev => prev + 1);
       loadData();
     } catch (err) {
       toast.error(err.message || 'Payment submission failed');
@@ -147,6 +154,7 @@ export const Payments = () => {
       await api.payments.delete(selectedPayment.id);
       toast.success('Payment deleted. Outstanding balances reverted.');
       setIsDeleteOpen(false);
+      setRefreshTrigger(prev => prev + 1);
       loadData();
     } catch (err) {
       toast.error(err.message || 'Payment deletion failed');
@@ -194,7 +202,7 @@ export const Payments = () => {
                   <TableHead>Collection Date</TableHead>
                   <TableHead>Retail Shop</TableHead>
                   <TableHead>Method</TableHead>
-                  <TableHead>Linked Invoice</TableHead>
+                  <TableHead>Linked Invoices</TableHead>
                   <TableHead>Remarks</TableHead>
                   <TableHead>Amount Collected</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -223,9 +231,7 @@ export const Payments = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-mono text-indigo-400 text-xs">
-                        {pt.delivery?.deliveryNumber || (
-                          <span className="text-slate-500 font-semibold normal-case">On Account (FIFO)</span>
-                        )}
+                        {pt.deliveryNumbers?.length > 0 ? pt.deliveryNumbers.join(', ') : <span className="text-slate-500 font-semibold normal-case">On Account</span>}
                       </TableCell>
                       <TableCell className="text-xs text-slate-550 truncate max-w-xs font-semibold">
                         {pt.notes || '-'}
@@ -263,34 +269,130 @@ export const Payments = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             {/* Shop select */}
-            <Select
-              label="Select Retailer Shop *"
-              value={formShopId}
-              onChange={(e) => {
-                setFormShopId(e.target.value);
-                setFormDeliveryId('');
-              }}
-            >
-              {shops.map(s => (
-                <option key={s.id} value={s.id} className="bg-slate-900">
-                  {s.name} (Due: ₹{s.currentDue})
-                </option>
-              ))}
-            </Select>
+            <div className="md:col-span-2">
+              <Select
+                label="Select Retailer Shop *"
+                value={formShopId}
+                onChange={(e) => {
+                  setFormShopId(e.target.value);
+                  setFormDeliveryIds([]);
+                  setFormPaidAmount('');
+                }}
+              >
+                {shops.map(s => (
+                  <option key={s.id} value={s.id} className="bg-slate-900">
+                    {s.name} (Due: ₹{s.currentDue})
+                  </option>
+                ))}
+              </Select>
+            </div>
 
-            {/* Link to specific outstanding invoice */}
-            <Select
-              label="Apply Payment To Invoice"
-              value={formDeliveryId}
-              onChange={(e) => handleInvoiceSelect(e.target.value)}
-            >
-              <option value="" className="bg-slate-900">General Credit (Apply oldest invoices first - FIFO)</option>
-              {unpaidInvoices.map(d => (
-                <option key={d.id} value={d.id} className="bg-slate-900">
-                  {d.deliveryNumber} (Outstanding: ₹{d.remainingDue})
-                </option>
-              ))}
-            </Select>
+            {/* Shop Details & Unpaid Delivery Invoices List */}
+            {(() => {
+              const selectedShopObj = shops.find(s => s.id === formShopId);
+              if (!selectedShopObj) return null;
+              return (
+                <div className="md:col-span-2 bg-slate-950/40 p-4 border border-slate-900/80 rounded-xl flex flex-col gap-3 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/60 pb-2.5 gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Retailer Account Summary</span>
+                      <span className="text-sm font-extrabold text-slate-200">{selectedShopObj.name}</span>
+                    </div>
+                    <div className="flex flex-col sm:text-right">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total Pending Due</span>
+                      <span className="text-lg font-black text-rose-400">₹{selectedShopObj.currentDue.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-400 font-medium">
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold block uppercase">Owner</span>
+                      <span className="text-slate-350 font-semibold">{selectedShopObj.ownerName}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold block uppercase">Phone</span>
+                      <span className="text-slate-355 font-semibold">{selectedShopObj.phone}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 font-bold block uppercase">Area/Location</span>
+                      <span className="text-slate-355 font-semibold">{selectedShopObj.area}</span>
+                    </div>
+                  </div>
+
+                  {/* Pending Invoices List */}
+                  <div className="mt-2.5">
+                    <span className="text-[10px] text-slate-500 font-bold block uppercase tracking-wider mb-1.5">Unpaid or Partially Paid Invoices ({unpaidInvoices.length})</span>
+                    {unpaidInvoices.length === 0 ? (
+                      <p className="text-xs text-slate-500 font-semibold italic bg-slate-950/20 p-2.5 rounded border border-slate-900">No outstanding invoices for this retailer.</p>
+                    ) : (
+                      <div className="max-h-[160px] overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/30">
+                        <table className="w-full text-xs text-left border-collapse">
+                          <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase font-semibold">
+                            <tr>
+                              <th className="p-2 text-center w-10">
+                                <input
+                                  type="checkbox"
+                                  checked={unpaidInvoices.length > 0 && formDeliveryIds.length === unpaidInvoices.length}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      const allIds = unpaidInvoices.map(d => d.id);
+                                      setFormDeliveryIds(allIds);
+                                      const sum = unpaidInvoices.reduce((total, d) => total + d.remainingDue, 0);
+                                      setFormPaidAmount(String(sum));
+                                    } else {
+                                      setFormDeliveryIds([]);
+                                      setFormPaidAmount('');
+                                    }
+                                  }}
+                                  className="rounded bg-slate-900 border-slate-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 h-4 w-4 cursor-pointer"
+                                />
+                              </th>
+                              <th className="p-2">Invoice #</th>
+                              <th className="p-2">Date</th>
+                              <th className="p-2 text-right">Total</th>
+                              <th className="p-2 text-right">Pending</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-900/40 text-slate-300">
+                            {unpaidInvoices.map((d) => {
+                              const isSelected = formDeliveryIds.includes(d.id);
+                              return (
+                                <tr
+                                  key={d.id}
+                                  onClick={() => handleToggleInvoiceSelection(d.id)}
+                                  className={`hover:bg-slate-850/20 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-500/10' : ''}`}
+                                >
+                                  <td className="p-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => handleToggleInvoiceSelection(d.id)}
+                                      className="rounded bg-slate-900 border-slate-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 h-4 w-4 cursor-pointer"
+                                    />
+                                  </td>
+                                  <td className="p-2 font-bold text-slate-200">{d.deliveryNumber}</td>
+                                  <td className="p-2 text-slate-400 font-semibold">{new Date(d.deliveryDate).toLocaleDateString('en-IN')}</td>
+                                  <td className="p-2 text-right font-semibold">₹{d.totalAmount.toLocaleString('en-IN')}</td>
+                                  <td className="p-2 text-right font-bold text-rose-400">₹{d.remainingDue.toLocaleString('en-IN')}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected count and sum summary */}
+                  {formDeliveryIds.length > 0 && (
+                    <div className="flex justify-between items-center bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-lg text-xs font-bold text-indigo-400 mt-2">
+                      <span>Selected: {formDeliveryIds.length} of {unpaidInvoices.length} Invoices</span>
+                      <span>Total Amount Selected: ₹{unpaidInvoices.filter(d => formDeliveryIds.includes(d.id)).reduce((sum, d) => sum + d.remainingDue, 0).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Paid Amount */}
             <Input
