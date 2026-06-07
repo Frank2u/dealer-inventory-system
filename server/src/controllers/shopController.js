@@ -11,7 +11,8 @@ export const getAllShops = async (req, res, next) => {
         { name: { contains: search } },
         { ownerName: { contains: search } },
         { phone: { contains: search } },
-        { area: { contains: search } }
+        { area: { contains: search } },
+        { shopCode: { contains: search } }
       ];
     }
 
@@ -90,8 +91,39 @@ export const createShop = async (req, res, next) => {
       return res.status(400).json({ message: 'Name, Owner Name, Phone, Address and Area are required' });
     }
 
+    // Lookup area code prefix
+    const areaMap = await prisma.areaMapping.findFirst({
+      where: { areaName: { equals: area } }
+    });
+    const prefix = areaMap ? areaMap.codePrefix : 'SHP';
+
+    // Get the last shop created with this prefix to determine sequence
+    const lastShop = await prisma.shop.findFirst({
+      where: {
+        shopCode: {
+          startsWith: `${prefix}-`
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    let nextNum = 1;
+    if (lastShop && lastShop.shopCode) {
+      const parts = lastShop.shopCode.split('-');
+      if (parts.length > 1) {
+        const seq = parseInt(parts[1]);
+        if (!isNaN(seq)) {
+          nextNum = seq + 1;
+        }
+      }
+    }
+    const shopCode = `${prefix}-${String(nextNum).padStart(4, '0')}`;
+
     const shop = await prisma.shop.create({
       data: {
+        shopCode,
         name,
         ownerName,
         phone,

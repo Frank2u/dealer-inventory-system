@@ -11,7 +11,8 @@ import {
   Package,
   Truck,
   ArrowRight,
-  TrendingDown
+  TrendingDown,
+  Search
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -31,6 +32,8 @@ export const Dashboard = () => {
   const toast = useToast();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dashboardSearch, setDashboardSearch] = useState('');
+  const [dashboardAreaFilter, setDashboardAreaFilter] = useState('');
 
   const fetchStats = async () => {
     try {
@@ -43,6 +46,8 @@ export const Dashboard = () => {
     }
   };
 
+  // handleDirectDispatch removed - routing to edit modal instead
+
   useEffect(() => {
     fetchStats();
   }, []);
@@ -50,8 +55,8 @@ export const Dashboard = () => {
   if (loading) {
     return (
       <div className="p-6 flex flex-col gap-6 animate-pulse">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5">
+          {[...Array(7)].map((_, i) => (
             <div key={i} className="h-28 bg-slate-900/60 border border-slate-800 rounded-xl" />
           ))}
         </div>
@@ -105,6 +110,13 @@ export const Dashboard = () => {
       desc: "Delivering daily to local outlets",
       icon: <Store className="h-5 w-5 text-amber-400" />,
       bg: 'bg-amber-500/5 border-amber-500/10'
+    },
+    {
+      title: "GST Takecare (Me)",
+      value: `₹${(stats?.totalMyGstClaimable || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      desc: "Absorbed GST claimable in annual filing",
+      icon: <AlertTriangle className="h-5 w-5 text-amber-400" />,
+      bg: 'bg-amber-500/5 border-amber-500/10'
     }
   ];
 
@@ -127,8 +139,180 @@ export const Dashboard = () => {
         </div>
       )}
 
+      {/* 1.5 Today's Deliveries Notification */}
+      {stats?.todayDeliveries && stats.todayDeliveries.length > 0 && (
+        <Card className="border-indigo-500/10 shadow-lg relative overflow-hidden backdrop-blur-md">
+          {/* Visual Accent/Glow Indicator */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-405" />
+          
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 gap-3">
+            <div>
+              <CardTitle className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                Today's Scheduled Deliveries & Booked Orders
+              </CardTitle>
+              <CardDescription className="text-[11px] text-slate-500">Monitor all scheduled delivery items and dispatch booked orders for today</CardDescription>
+            </div>
+            <Link
+              to={`/deliveries?stage=ordered&date=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`}
+              className="px-3.5 py-1.5 bg-indigo-650/15 hover:bg-indigo-650/25 border border-indigo-550/20 hover:border-indigo-550/45 text-indigo-400 hover:text-indigo-300 rounded-lg text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              Filter Today's Pending Deliveries
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </CardHeader>
+          <CardContent className="p-0">
+            {/* Filter toolbar */}
+            {(() => {
+              const uniqueAreas = stats?.todayDeliveries
+                ? Array.from(new Set(stats.todayDeliveries.map(d => d.shop?.area).filter(Boolean)))
+                : [];
+
+              const filteredDeliveries = stats?.todayDeliveries
+                ? stats.todayDeliveries.filter(d => {
+                    const matchesSearch = 
+                      d.shop?.name?.toLowerCase().includes(dashboardSearch.toLowerCase()) || 
+                      d.shop?.shopCode?.toLowerCase().includes(dashboardSearch.toLowerCase()) ||
+                      d.deliveryNumber?.toLowerCase().includes(dashboardSearch.toLowerCase());
+                    const matchesArea = dashboardAreaFilter ? d.shop?.area === dashboardAreaFilter : true;
+                    return matchesSearch && matchesArea;
+                  })
+                : [];
+
+              return (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-3 px-4 py-3 border-b border-slate-900/60 items-center justify-between bg-slate-900/10">
+                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto flex-1">
+                      {/* Search Shop Input */}
+                      <div className="relative max-w-xs w-full">
+                        <span className="absolute left-3 top-2.5 text-slate-500"><Search className="h-3.5 w-3.5" /></span>
+                        <input
+                          type="text"
+                          placeholder="Search code or shop..."
+                          className="w-full bg-slate-950/20 border border-slate-900 text-xs rounded-lg pl-8 pr-3 py-2 text-slate-200 focus:outline-none focus:border-slate-800"
+                          value={dashboardSearch}
+                          onChange={(e) => setDashboardSearch(e.target.value)}
+                        />
+                      </div>
+                      
+                      {/* Area Dropdown Select */}
+                      <select
+                        className="bg-slate-950/20 border border-slate-900 text-xs font-semibold text-slate-400 rounded-lg px-3 py-2 outline-none cursor-pointer hover:border-slate-800"
+                        value={dashboardAreaFilter}
+                        onChange={(e) => setDashboardAreaFilter(e.target.value)}
+                      >
+                        <option value="">All Areas</option>
+                        {uniqueAreas.map(area => (
+                          <option key={area} value={area}>{area}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="text-[10px] text-indigo-400 font-bold uppercase bg-indigo-500/5 border border-indigo-500/10 px-2.5 py-1.5 rounded-md">
+                      {filteredDeliveries.length} Pending
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-900/35 text-slate-400 font-semibold border-b border-slate-900/60 uppercase text-[10px] tracking-wider">
+                        <tr>
+                          <th className="p-4">Invoice #</th>
+                          <th className="p-4">Retail Shop</th>
+                          <th className="p-4">Dispatched Time</th>
+                          <th className="p-4">Products & Pack Sizes</th>
+                          <th className="p-4">Total Value</th>
+                          <th className="p-4">Stage</th>
+                          <th className="p-4 text-center">Quick Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-900/40">
+                        {filteredDeliveries.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="p-8 text-center text-slate-500 font-semibold">
+                              No pending scheduled deliveries match your filter
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredDeliveries.map((delivery) => (
+                            <tr key={delivery.id} className="hover:bg-slate-900/10 transition-colors duration-150">
+                              <td className="p-4 font-bold text-slate-200">{delivery.deliveryNumber}</td>
+                              <td className="p-4">
+                                <div className="flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-semibold text-slate-200">{delivery.shop?.name}</span>
+                                    {delivery.shop?.shopCode && (
+                                      <Badge variant="indigo" className="text-[9px] px-1 py-0 font-mono font-bold bg-indigo-500/10 border-indigo-500/20 text-indigo-400">
+                                        {delivery.shop.shopCode}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 font-medium">{delivery.shop?.area || delivery.shop?.address}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 font-semibold text-slate-400">
+                                {new Date(delivery.deliveryDate).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="p-4">
+                                <div className="flex flex-col gap-1 max-w-xs">
+                                  {delivery.items?.map((item) => (
+                                    <span key={item.id} className="text-[11px] text-slate-350 truncate">
+                                      • <span className="font-semibold text-slate-200">{item.product?.name}</span>
+                                      <span className="text-indigo-400 font-bold ml-1">x{item.quantity}</span>
+                                      <span className="text-slate-500 text-[10px] ml-1">
+                                        (Lot Size: {item.lotSize} {item.product?.unitType || 'pcs'})
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-4 font-bold text-slate-200">
+                                <div className="flex flex-col gap-0.5">
+                                  <span>₹{delivery.totalAmount.toLocaleString('en-IN')}</span>
+                                  <span className={`text-[9px] font-bold ${
+                                    delivery.paymentStatus === 'paid' ? 'text-emerald-400' : delivery.paymentStatus === 'partial' ? 'text-amber-400' : 'text-rose-450'
+                                  }`}>
+                                    {delivery.paymentStatus.toUpperCase()}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <Badge variant={delivery.status === 'delivered' ? 'success' : 'info'}>
+                                  {delivery.status === 'delivered' ? 'DISPATCHED' : 'PENDING'}
+                                </Badge>
+                              </td>
+                              <td className="p-4 text-center">
+                                {delivery.status === 'ordered' ? (
+                                  <Link
+                                    to={`/deliveries?dispatchId=${delivery.id}`}
+                                    title="Review & Edit Order details before Dispatching"
+                                    className="py-1.5 px-3 bg-indigo-650 hover:bg-indigo-600 active:bg-indigo-700 text-white rounded-lg border border-indigo-550/20 shadow hover:-translate-y-0.5 transition-all inline-flex items-center justify-center gap-1 cursor-pointer font-bold text-[10px] uppercase tracking-wider"
+                                  >
+                                    <Truck className="h-3.5 w-3.5" />
+                                    <span>Dispatch</span>
+                                  </Link>
+                                ) : (
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Completed</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
+
       {/* 2. Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5">
         {cardItems.map((item, idx) => (
           <Card key={idx} className={`${item.bg} hover:-translate-y-0.5 transition-all duration-200`}>
             <CardContent className="p-5 flex items-start justify-between">

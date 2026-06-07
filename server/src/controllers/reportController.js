@@ -15,6 +15,14 @@ export const getDashboardStats = async (req, res, next) => {
           gte: today,
           lt: tomorrow
         }
+      },
+      include: {
+        shop: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
       }
     });
     const todaySales = todayDeliveries.reduce((sum, d) => sum + d.totalAmount, 0);
@@ -164,9 +172,17 @@ export const getDashboardStats = async (req, res, next) => {
       select: { name: true, currentDue: true }
     });
 
+    // 10. Cumulative GST Claimable (Paid by Me) for delivered/dispatched invoices
+    const claimableGstData = await prisma.delivery.findMany({
+      where: { status: 'delivered' },
+      select: { gstPaidByMe: true }
+    });
+    const totalMyGstClaimable = parseFloat(claimableGstData.reduce((sum, d) => sum + (d.gstPaidByMe || 0), 0).toFixed(2));
+
     res.json({
       todaySales,
       todayDeliveryCount,
+      todayDeliveries,
       totalUnpaid,
       totalPaid,
       totalProfit,
@@ -179,7 +195,8 @@ export const getDashboardStats = async (req, res, next) => {
       recentDeliveries,
       recentPayments,
       revenueGraphData,
-      topDueShops
+      topDueShops,
+      totalMyGstClaimable
     });
   } catch (error) {
     next(error);

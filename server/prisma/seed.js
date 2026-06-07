@@ -20,6 +20,7 @@ async function main() {
   await prisma.stockEntry.deleteMany({});
   await prisma.product.deleteMany({});
   await prisma.category.deleteMany({});
+  await prisma.areaMapping.deleteMany({});
   await prisma.shop.deleteMany({});
   await prisma.user.deleteMany({});
 
@@ -131,10 +132,20 @@ async function main() {
   ]);
   console.log(`Created ${products.length} products.`);
 
+  // 4.5 Create Area Mappings
+  const areaMappings = await Promise.all([
+    prisma.areaMapping.create({ data: { areaName: 'Downtown', codePrefix: 'DT' } }),
+    prisma.areaMapping.create({ data: { areaName: 'High Street', codePrefix: 'HS' } }),
+    prisma.areaMapping.create({ data: { areaName: 'North Side', codePrefix: 'NS' } }),
+    prisma.areaMapping.create({ data: { areaName: 'Singallur', codePrefix: 'SN' } }),
+  ]);
+  console.log(`Created ${areaMappings.length} area mappings.`);
+
   // 5. Create Shops
   const shops = await Promise.all([
     prisma.shop.create({
       data: {
+        shopCode: 'DT-0001',
         name: 'Super Mart Grocery',
         ownerName: 'John Doe',
         phone: '9876543210',
@@ -149,6 +160,7 @@ async function main() {
     }),
     prisma.shop.create({
       data: {
+        shopCode: 'HS-0001',
         name: 'Kwik Stop Express',
         ownerName: 'Jane Smith',
         phone: '8765432109',
@@ -162,6 +174,7 @@ async function main() {
     }),
     prisma.shop.create({
       data: {
+        shopCode: 'NS-0001',
         name: 'Corner Store & Café',
         ownerName: 'Robert Johnson',
         phone: '7654321098',

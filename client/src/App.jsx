@@ -13,6 +13,7 @@ import Deliveries from './pages/Deliveries.jsx';
 import Payments from './pages/Payments.jsx';
 import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
+import AreaMapping from './pages/AreaMapping.jsx';
 
 // Private Layout wrapper guarding authenticated routes
 const AppLayout = () => {
@@ -81,6 +82,7 @@ function App() {
               <Route path="payments" element={<Payments />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="areas" element={<AreaMapping />} />
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

@@ -11,7 +11,8 @@ import {
   FileBarChart,
   Settings,
   LogOut,
-  X
+  X,
+  MapPin
 } from 'lucide-react';
 
 export const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -25,6 +26,7 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Deliveries', path: '/deliveries', icon: <Truck className="h-4.5 w-4.5" /> },
     { name: 'Payments', path: '/payments', icon: <IndianRupee className="h-4.5 w-4.5" /> },
     { name: 'Reports', path: '/reports', icon: <FileBarChart className="h-4.5 w-4.5" /> },
+    { name: 'Area Codes', path: '/areas', icon: <MapPin className="h-4.5 w-4.5" /> },
     { name: 'Settings', path: '/settings', icon: <Settings className="h-4.5 w-4.5" /> }
   ];
 

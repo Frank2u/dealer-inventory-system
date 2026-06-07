@@ -4,6 +4,7 @@ import { api } from '../services/api.js';
 import { useToast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';
+import { Select } from '../components/ui/Select.jsx';
 import { Card, CardContent } from '../components/ui/Card.jsx';
 import { Dialog } from '../components/ui/Dialog.jsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table.jsx';
@@ -14,6 +15,7 @@ export const Shops = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const [shops, setShops] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [search, setSearch] = useState('');
   const [hasDueOnly, setHasDueOnly] = useState(false);
   const [sortBy, setSortBy] = useState('');
@@ -51,9 +53,22 @@ export const Shops = () => {
     }
   };
 
+  const fetchAreas = async () => {
+    try {
+      const data = await api.areas.getAll();
+      setAreas(data);
+    } catch (err) {
+      toast.error('Failed to load area mappings');
+    }
+  };
+
   useEffect(() => {
     fetchShops();
   }, [search, hasDueOnly, sortBy]);
+
+  useEffect(() => {
+    fetchAreas();
+  }, []);
 
   // Open Form for Create
   const handleCreateOpen = () => {
@@ -204,6 +219,7 @@ export const Shops = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Code</TableHead>
                   <TableHead>Shop Name</TableHead>
                   <TableHead>Owner</TableHead>
                   <TableHead>Contact</TableHead>
@@ -218,6 +234,9 @@ export const Shops = () => {
               <TableBody>
                 {shops.map((shop) => (
                   <TableRow key={shop.id}>
+                    <TableCell className="font-mono text-xs font-bold text-indigo-400">
+                      {shop.shopCode || 'N/A'}
+                    </TableCell>
                     <TableCell className="font-bold text-slate-200">
                       <div>
                         {shop.name}
@@ -337,12 +356,23 @@ export const Shops = () => {
               />
             </div>
             <div>
-              <Input
+              <Select
                 label="Area/Location *"
-                placeholder="e.g. Downtown Sector 4"
                 value={formData.area}
                 onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-              />
+              >
+                <option value="" className="bg-slate-900">-- Select Area --</option>
+                {areas.map(a => (
+                  <option key={a.id} value={a.areaName} className="bg-slate-900">
+                    {a.areaName} ({a.codePrefix})
+                  </option>
+                ))}
+              </Select>
+              {areas.length === 0 && (
+                <span className="text-[10px] text-amber-405 font-semibold mt-1 block">
+                  Please define area codes in "Area Codes" page first!
+                </span>
+              )}
             </div>
             <div className="md:col-span-2">
               <Input

@@ -44,7 +44,8 @@ export const Products = () => {
     discountPercent: '',
     currentStock: '0',
     minStockAlert: '5',
-    expiryDate: ''
+    expiryDate: '',
+    gstPercent: '0'
   });
 
   const parseDiscountRange = (discountStr) => {
@@ -96,7 +97,8 @@ export const Products = () => {
       discountPercent: '',
       currentStock: '0',
       minStockAlert: '5',
-      expiryDate: ''
+      expiryDate: '',
+      gstPercent: '0'
     });
     setIsFormOpen(true);
   };
@@ -120,7 +122,8 @@ export const Products = () => {
       discountPercent: prod.discountPercent || '',
       currentStock: String(prod.currentStock),
       minStockAlert: String(prod.minStockAlert),
-      expiryDate: prod.expiryDate ? prod.expiryDate.split('T')[0] : ''
+      expiryDate: prod.expiryDate ? prod.expiryDate.split('T')[0] : '',
+      gstPercent: String(prod.gstPercent || 0)
     });
     setIsFormOpen(true);
   };
@@ -288,11 +291,20 @@ export const Products = () => {
                       <TableCell className="font-bold text-slate-200">
                         <div className="flex flex-col">
                           <span>₹{prod.sellingPrice.toFixed(2)}</span>
-                          {prod.mrp > 0 && (
-                            <span className="text-[10px] text-slate-500 font-medium">
-                              MRP: ₹{prod.mrp.toFixed(2)} {prod.discountPercent && `(${prod.discountPercent})`}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {prod.gstPercent > 0 ? (
+                              <Badge variant="info" className="text-[9px] px-1 py-0 tracking-wider font-bold">
+                                GST: {prod.gstPercent}%
+                              </Badge>
+                            ) : (
+                              <span className="text-[9px] text-slate-500 font-semibold uppercase">No GST</span>
+                            )}
+                            {prod.mrp > 0 && (
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                MRP: ₹{prod.mrp.toFixed(2)} {prod.discountPercent && `(${prod.discountPercent})`}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="font-bold text-emerald-400">
@@ -502,6 +514,15 @@ export const Products = () => {
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="GST Rate (%)"
+                type="number"
+                placeholder="0"
+                value={formData.gstPercent}
+                onChange={(e) => setFormData({ ...formData, gstPercent: e.target.value })}
               />
             </div>
           </div>

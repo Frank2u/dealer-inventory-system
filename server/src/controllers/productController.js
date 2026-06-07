@@ -72,7 +72,7 @@ export const getProductById = async (req, res, next) => {
 
 export const createProduct = async (req, res, next) => {
   try {
-    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyName, companyAddress, companyPhone, companyGst, mrp, discountPercent } = req.body;
+    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyName, companyAddress, companyPhone, companyGst, mrp, discountPercent, gstPercent } = req.body;
 
     if (!name || !sku || !brand || !categoryId || !purchasePrice || !sellingPrice) {
       return res.status(400).json({ message: 'Missing required product fields' });
@@ -100,6 +100,7 @@ export const createProduct = async (req, res, next) => {
         companyGst: companyGst || '',
         mrp: parseFloat(mrp) || 0.0,
         discountPercent: discountPercent || '',
+        gstPercent: parseFloat(gstPercent) || 0.0,
         currentStock: parseInt(currentStock) || 0,
         minStockAlert: parseInt(minStockAlert) || 5,
         expiryDate: expiryDate ? new Date(expiryDate) : null
@@ -118,7 +119,7 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyName, companyAddress, companyPhone, companyGst, mrp, discountPercent } = req.body;
+    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyName, companyAddress, companyPhone, companyGst, mrp, discountPercent, gstPercent } = req.body;
 
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
@@ -149,6 +150,7 @@ export const updateProduct = async (req, res, next) => {
         companyGst,
         mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
         discountPercent,
+        gstPercent: gstPercent !== undefined ? parseFloat(gstPercent) : undefined,
         currentStock: currentStock !== undefined ? parseInt(currentStock) : undefined,
         minStockAlert: minStockAlert !== undefined ? parseInt(minStockAlert) : undefined,
         expiryDate: expiryDate !== undefined ? (expiryDate ? new Date(expiryDate) : null) : undefined

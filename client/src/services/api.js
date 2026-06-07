@@ -93,15 +93,24 @@ export const api = {
     delete: (id) => request.delete(`/stock/${id}`)
   },
   deliveries: {
-    getAll: (shopId = '', paymentStatus = '') => {
+    getAll: (shopId = '', paymentStatus = '', status = '', date = '') => {
       const params = new URLSearchParams();
       if (shopId) params.append('shopId', shopId);
       if (paymentStatus) params.append('paymentStatus', paymentStatus);
+      if (status) params.append('status', status);
+      if (date) params.append('date', date);
       return request.get(`/deliveries?${params.toString()}`);
     },
     getById: (id) => request.get(`/deliveries/${id}`),
     create: (data) => request.post('/deliveries', data),
+    dispatch: (id, body = {}) => request.put(`/deliveries/${id}/dispatch`, body),
     delete: (id) => request.delete(`/deliveries/${id}`)
+  },
+  areas: {
+    getAll: () => request.get('/areas'),
+    create: (data) => request.post('/areas', data),
+    update: (id, data) => request.put(`/areas/${id}`, data),
+    delete: (id) => request.delete(`/areas/${id}`)
   },
   payments: {
     getAll: (shopId = '') => request.get(`/payments${shopId ? `?shopId=${shopId}` : ''}`),

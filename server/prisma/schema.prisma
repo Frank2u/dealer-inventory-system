@@ -44,6 +44,7 @@ model Product {
   discountPercent String         @default("")
   currentStock    Int            @default(0)
   minStockAlert   Int            @default(5)
+  gstPercent      Float          @default(0.0)
   expiryDate      DateTime?
   stockEntries    StockEntry[]
   deliveryItems   DeliveryItem[]
@@ -53,6 +54,7 @@ model Product {
 
 model Shop {
   id             String     @id @default(uuid())
+  shopCode       String     @default("")
   name           String
   ownerName      String
   phone          String
@@ -67,6 +69,14 @@ model Shop {
   payments       Payment[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+}
+
+model AreaMapping {
+  id         String   @id @default(uuid())
+  areaName   String   @unique
+  codePrefix String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model StockEntry {
@@ -93,6 +103,10 @@ model Delivery {
   paidAmount     Float          @default(0)
   remainingDue   Float
   paymentStatus  String         @default("unpaid") // paid, partial, unpaid
+  status         String         @default("ordered") // ordered, delivered
+  totalGst       Float          @default(0)
+  gstPaidByShop  Float          @default(0)
+  gstPaidByMe    Float          @default(0)
   items          DeliveryItem[]
   payments       Payment[]
   createdAt      DateTime       @default(now())
@@ -109,6 +123,8 @@ model DeliveryItem {
   lotSize     Int      @default(1)
   price       Float
   totalAmount Float
+  gstPercent  Float    @default(0)
+  gstAmount   Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
