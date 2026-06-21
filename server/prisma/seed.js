@@ -19,6 +19,7 @@ async function main() {
   await prisma.delivery.deleteMany({});
   await prisma.stockEntry.deleteMany({});
   await prisma.product.deleteMany({});
+  await prisma.company.deleteMany({});
   await prisma.category.deleteMany({});
   await prisma.areaMapping.deleteMany({});
   await prisma.shop.deleteMany({});
@@ -47,6 +48,43 @@ async function main() {
   ]);
   console.log(`Created ${categories.length} categories.`);
 
+  // 3.5 Create Companies
+  const companies = await Promise.all([
+    prisma.company.create({
+      data: {
+        name: 'Coca-Cola India Pvt Ltd',
+        address: 'Plot No. 110, Sector 5, IMT Manesar, Gurugram, Haryana',
+        phone: '18001882653',
+        gstNumber: '06AACCC1100F1Z4'
+      }
+    }),
+    prisma.company.create({
+      data: {
+        name: 'PepsiCo India Holdings Pvt Ltd',
+        address: 'Level 5, Tower C, DLF Cyber City, Phase III, Gurugram, Haryana',
+        phone: '1800224020',
+        gstNumber: '06AABCP5600K2Z2'
+      }
+    }),
+    prisma.company.create({
+      data: {
+        name: 'Gujarat Cooperative Milk Marketing Federation',
+        address: 'Amul Dairy Road, Anand, Gujarat',
+        phone: '18002583333',
+        gstNumber: '24AAAAG1000A1Z5'
+      }
+    }),
+    prisma.company.create({
+      data: {
+        name: 'Henkel Adhesives Technologies India Pvt Ltd',
+        address: 'Vikas Centre, 5th Floor, Santacruz East, Mumbai, Maharashtra',
+        phone: '1800223040',
+        gstNumber: '27AAACH1200D1Z6'
+      }
+    })
+  ]);
+  console.log(`Created ${companies.length} companies.`);
+
   // 4. Create Products
   const products = await Promise.all([
     prisma.product.create({
@@ -59,10 +97,7 @@ async function main() {
         unitType: 'case',
         purchasePrice: 280.0,
         sellingPrice: 360.0,
-        companyName: 'Coca-Cola India Pvt Ltd',
-        companyAddress: 'Plot No. 110, Sector 5, IMT Manesar, Gurugram, Haryana',
-        companyPhone: '18001882653',
-        companyGst: '06AACCC1100F1Z4',
+        companyId: companies[0].id,
         mrp: 400.0,
         discountPercent: '10% - 15%',
         currentStock: 50,
@@ -79,10 +114,7 @@ async function main() {
         unitType: 'box',
         purchasePrice: 450.0,
         sellingPrice: 540.0,
-        companyName: 'PepsiCo India Holdings Pvt Ltd',
-        companyAddress: 'Level 5, Tower C, DLF Cyber City, Phase III, Gurugram, Haryana',
-        companyPhone: '1800224020',
-        companyGst: '06AABCP5600K2Z2',
+        companyId: companies[1].id,
         mrp: 600.0,
         discountPercent: '12% - 18%',
         currentStock: 30,
@@ -99,10 +131,7 @@ async function main() {
         unitType: 'crate',
         purchasePrice: 660.0,
         sellingPrice: 720.0,
-        companyName: 'Gujarat Cooperative Milk Marketing Federation',
-        companyAddress: 'Amul Dairy Road, Anand, Gujarat',
-        companyPhone: '18002583333',
-        companyGst: '24AAAAG1000A1Z5',
+        companyId: companies[2].id,
         mrp: 750.0,
         discountPercent: '5% - 8%',
         currentStock: 15,
@@ -119,10 +148,7 @@ async function main() {
         unitType: 'box',
         purchasePrice: 850.0,
         sellingPrice: 950.0,
-        companyName: 'Henkel Adhesives Technologies India Pvt Ltd',
-        companyAddress: 'Vikas Centre, 5th Floor, Santacruz East, Mumbai, Maharashtra',
-        companyPhone: '1800223040',
-        companyGst: '27AAACH1200D1Z6',
+        companyId: companies[3].id,
         mrp: 1000.0,
         discountPercent: '8% - 12%',
         currentStock: 8,
@@ -141,6 +167,13 @@ async function main() {
   ]);
   console.log(`Created ${areaMappings.length} area mappings.`);
 
+  // Hash Shop Passwords
+  const shopPasswords = await Promise.all([
+    bcrypt.hash('9876543210', 10),
+    bcrypt.hash('8765432109', 10),
+    bcrypt.hash('7654321098', 10),
+  ]);
+
   // 5. Create Shops
   const shops = await Promise.all([
     prisma.shop.create({
@@ -156,6 +189,7 @@ async function main() {
         creditLimit: 50000.0,
         notes: 'Premium retail customer, delivers daily in the morning.',
         currentDue: 0.0,
+        password: shopPasswords[0]
       },
     }),
     prisma.shop.create({
@@ -170,6 +204,7 @@ async function main() {
         creditLimit: 30000.0,
         notes: 'Prefers digital payments. Check for expiry dates on dairy products.',
         currentDue: 0.0,
+        password: shopPasswords[1]
       },
     }),
     prisma.shop.create({
@@ -183,6 +218,7 @@ async function main() {
         creditLimit: 15000.0,
         notes: 'Small shop. Cash deliveries only.',
         currentDue: 0.0,
+        password: shopPasswords[2]
       },
     }),
   ]);
