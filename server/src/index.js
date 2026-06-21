@@ -9,6 +9,7 @@ import deliveryRoutes from './routes/deliveries.js';
 import paymentRoutes from './routes/payments.js';
 import reportRoutes from './routes/reports.js';
 import areaRoutes from './routes/areas.js';
+import companyRoutes from './routes/companies.js';
 import { errorHandler } from './middleware/error.js';
 
 // Load environment variables
@@ -33,6 +34,7 @@ app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/areas', areaRoutes);
+app.use('/api/companies', companyRoutes);
 
 // Base route
 app.get('/health', (req, res) => {

@@ -36,10 +36,8 @@ model Product {
   unitType        String         @default("pcs") // pcs, box, kg, etc.
   purchasePrice   Float
   sellingPrice     Float
-  companyName     String         @default("")
-  companyAddress  String         @default("")
-  companyPhone    String         @default("")
-  companyGst      String         @default("")
+  companyId       String?
+  company         Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
   mrp             Float          @default(0.0)
   discountPercent String         @default("")
   currentStock    Int            @default(0)
@@ -65,10 +63,22 @@ model Shop {
   creditLimit    Float      @default(0)
   notes          String?
   currentDue     Float      @default(0)
+  password       String     @default("")
   deliveries     Delivery[]
   payments       Payment[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
+}
+
+model Company {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  address   String    @default("")
+  phone     String    @default("")
+  gstNumber String    @default("")
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model AreaMapping {
@@ -88,6 +98,7 @@ model StockEntry {
   quantity      Int
   costPrice     Float
   date          DateTime @default(now())
+  expiryDate    DateTime?
   notes         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

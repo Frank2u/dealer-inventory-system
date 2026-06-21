@@ -43,13 +43,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const customerLogin = async (username, password) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await api.auth.customerLogin(username, password);
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      setLoading(false);
+      return data.user;
+    } catch (err) {
+      setError(err.message || 'Login failed');
+      setLoading(false);
+      throw err;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, error, login, customerLogin, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

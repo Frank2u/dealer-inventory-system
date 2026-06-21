@@ -14,6 +14,7 @@ export const Products = () => {
   const toast = useToast();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedCatId, setSelectedCatId] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
@@ -36,10 +37,7 @@ export const Products = () => {
     unitType: 'pcs',
     purchasePrice: '0',
     sellingPrice: '0',
-    companyName: '',
-    companyAddress: '',
-    companyPhone: '',
-    companyGst: '',
+    companyId: '',
     mrp: '0',
     discountPercent: '',
     currentStock: '0',
@@ -61,12 +59,14 @@ export const Products = () => {
 
   const loadData = async () => {
     try {
-      const [prods, cats] = await Promise.all([
+      const [prods, cats, comps] = await Promise.all([
         api.products.getAll(search, selectedCatId, lowStockOnly),
-        api.products.getCategories()
+        api.products.getCategories(),
+        api.companies.getAll()
       ]);
       setProducts(prods);
       setCategories(cats);
+      setCompanies(comps);
     } catch (err) {
       toast.error('Failed to load catalog inventory');
     } finally {
@@ -89,10 +89,7 @@ export const Products = () => {
       unitType: 'pcs',
       purchasePrice: '0',
       sellingPrice: '0',
-      companyName: '',
-      companyAddress: '',
-      companyPhone: '',
-      companyGst: '',
+      companyId: companies[0]?.id || '',
       mrp: '0',
       discountPercent: '',
       currentStock: '0',
@@ -114,10 +111,7 @@ export const Products = () => {
       unitType: prod.unitType,
       purchasePrice: String(prod.purchasePrice),
       sellingPrice: String(prod.sellingPrice),
-      companyName: prod.companyName || '',
-      companyAddress: prod.companyAddress || '',
-      companyPhone: prod.companyPhone || '',
-      companyGst: prod.companyGst || '',
+      companyId: prod.companyId || '',
       mrp: String(prod.mrp || 0),
       discountPercent: prod.discountPercent || '',
       currentStock: String(prod.currentStock),
@@ -277,12 +271,12 @@ export const Products = () => {
                       <TableCell className="font-mono text-xs text-indigo-400">{prod.sku}</TableCell>
                       <TableCell className="font-semibold text-slate-300">
                         <div className="flex flex-col">
-                          <span>{prod.brand}</span>
-                          {prod.companyName && (
-                            <span className="text-[10px] text-slate-500 font-semibold truncate max-w-[120px]" title={prod.companyName}>
-                              {prod.companyName}
-                            </span>
-                          )}
+                           <span>{prod.brand}</span>
+                           {prod.company?.name && (
+                             <span className="text-[10px] text-slate-500 font-semibold truncate max-w-[120px]" title={prod.company.name}>
+                               {prod.company.name}
+                             </span>
+                           )}
                         </div>
                       </TableCell>
                       <TableCell className="text-slate-300">{prod.category?.name || 'N/A'}</TableCell>
@@ -385,36 +379,16 @@ export const Products = () => {
               />
             </div>
             <div>
-              <Input
-                label="Company Name"
-                placeholder="e.g. Coca-Cola India Pvt Ltd"
-                value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Company Address"
-                placeholder="e.g. Gurugram, Haryana"
-                value={formData.companyAddress}
-                onChange={(e) => setFormData({ ...formData, companyAddress: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Company Phone"
-                placeholder="e.g. 18001882653"
-                value={formData.companyPhone}
-                onChange={(e) => setFormData({ ...formData, companyPhone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Company GST PIN"
-                placeholder="e.g. 06AACCC1100F1Z4"
-                value={formData.companyGst}
-                onChange={(e) => setFormData({ ...formData, companyGst: e.target.value })}
-              />
+              <Select
+                label="Product Company"
+                value={formData.companyId}
+                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+              >
+                <option value="" className="bg-slate-900">-- None / Select Company --</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
+                ))}
+              </Select>
             </div>
             <div>
               <Select

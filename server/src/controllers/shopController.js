@@ -1,4 +1,5 @@
 import prisma from '../prisma.js';
+import bcrypt from 'bcryptjs';
 
 export const getAllShops = async (req, res, next) => {
   try {
@@ -85,11 +86,16 @@ export const getShopById = async (req, res, next) => {
 
 export const createShop = async (req, res, next) => {
   try {
-    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes } = req.body;
+    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes, password } = req.body;
 
     if (!name || !ownerName || !phone || !address || !area) {
       return res.status(400).json({ message: 'Name, Owner Name, Phone, Address and Area are required' });
     }
+
+    // Hash the password (defaults to phone number if not provided)
+    const defaultPassword = password ? password.trim() : (phone ? phone.trim() : '123456');
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(defaultPassword, salt);
 
     // Lookup area code prefix
     const areaMap = await prisma.areaMapping.findFirst({
@@ -133,7 +139,8 @@ export const createShop = async (req, res, next) => {
         gstNumber,
         creditLimit: parseFloat(creditLimit) || 0,
         notes,
-        currentDue: 0
+        currentDue: 0,
+        password: hashedPassword
       }
     });
 
@@ -146,11 +153,17 @@ export const createShop = async (req, res, next) => {
 export const updateShop = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes } = req.body;
+    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes, password } = req.body;
 
     const shop = await prisma.shop.findUnique({ where: { id } });
     if (!shop) {
       return res.status(404).json({ message: 'Shop not found' });
+    }
+
+    let hashedPassword = undefined;
+    if (password && password.trim() !== '') {
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password.trim(), salt);
     }
 
     const updatedShop = await prisma.shop.update({
@@ -164,7 +177,8 @@ export const updateShop = async (req, res, next) => {
         area,
         gstNumber,
         creditLimit: creditLimit !== undefined ? parseFloat(creditLimit) : undefined,
-        notes
+        notes,
+        password: hashedPassword
       }
     });
 

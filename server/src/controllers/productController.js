@@ -22,7 +22,8 @@ export const getAllProducts = async (req, res, next) => {
       where,
       include: {
         category: true,
-        deliveryItems: true
+        deliveryItems: true,
+        company: true
       },
       orderBy: { name: 'asc' }
     });
@@ -57,7 +58,7 @@ export const getProductById = async (req, res, next) => {
     const { id } = req.params;
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { category: true }
+      include: { category: true, company: true }
     });
 
     if (!product) {
@@ -72,7 +73,7 @@ export const getProductById = async (req, res, next) => {
 
 export const createProduct = async (req, res, next) => {
   try {
-    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyName, companyAddress, companyPhone, companyGst, mrp, discountPercent, gstPercent } = req.body;
+    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyId, mrp, discountPercent, gstPercent } = req.body;
 
     if (!name || !sku || !brand || !categoryId || !purchasePrice || !sellingPrice) {
       return res.status(400).json({ message: 'Missing required product fields' });
@@ -94,10 +95,7 @@ export const createProduct = async (req, res, next) => {
         unitType: unitType || 'pcs',
         purchasePrice: parseFloat(purchasePrice),
         sellingPrice: parseFloat(sellingPrice),
-        companyName: companyName || '',
-        companyAddress: companyAddress || '',
-        companyPhone: companyPhone || '',
-        companyGst: companyGst || '',
+        companyId: companyId || null,
         mrp: parseFloat(mrp) || 0.0,
         discountPercent: discountPercent || '',
         gstPercent: parseFloat(gstPercent) || 0.0,
@@ -106,7 +104,8 @@ export const createProduct = async (req, res, next) => {
         expiryDate: expiryDate ? new Date(expiryDate) : null
       },
       include: {
-        category: true
+        category: true,
+        company: true
       }
     });
 
@@ -119,7 +118,7 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyName, companyAddress, companyPhone, companyGst, mrp, discountPercent, gstPercent } = req.body;
+    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyId, mrp, discountPercent, gstPercent } = req.body;
 
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
@@ -144,10 +143,7 @@ export const updateProduct = async (req, res, next) => {
         unitType,
         purchasePrice: purchasePrice !== undefined ? parseFloat(purchasePrice) : undefined,
         sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
-        companyName,
-        companyAddress,
-        companyPhone,
-        companyGst,
+        companyId: companyId !== undefined ? (companyId || null) : undefined,
         mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
         discountPercent,
         gstPercent: gstPercent !== undefined ? parseFloat(gstPercent) : undefined,
@@ -156,7 +152,8 @@ export const updateProduct = async (req, res, next) => {
         expiryDate: expiryDate !== undefined ? (expiryDate ? new Date(expiryDate) : null) : undefined
       },
       include: {
-        category: true
+        category: true,
+        company: true
       }
     });
 

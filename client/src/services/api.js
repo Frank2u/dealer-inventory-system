@@ -56,6 +56,7 @@ const request = {
 export const api = {
   auth: {
     login: (username, password) => request.post('/auth/login', { username, password }),
+    customerLogin: (username, password) => request.post('/auth/customer/login', { username, password }),
     getProfile: () => request.get('/auth/profile')
   },
   shops: {
@@ -86,6 +87,17 @@ export const api = {
     delete: (id) => request.delete(`/products/${id}`),
     getCategories: () => request.get('/products/categories'),
     createCategory: (name) => request.post('/products/categories', { name })
+  },
+  companies: {
+    getAll: (search = '') => {
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      return request.get(`/companies?${params.toString()}`);
+    },
+    getById: (id) => request.get(`/companies/${id}`),
+    create: (data) => request.post('/companies', data),
+    update: (id, data) => request.put(`/companies/${id}`, data),
+    delete: (id) => request.delete(`/companies/${id}`)
   },
   stock: {
     getAll: () => request.get('/stock'),

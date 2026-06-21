@@ -3,11 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx';
 import { ToastProvider } from './components/ui/Toast.jsx';
 import Login from './pages/Login.jsx';
+import CustomerLogin from './pages/CustomerLogin.jsx';
 import Sidebar from './components/layout/Sidebar.jsx';
 import Header from './components/layout/Header.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import CustomerDashboard from './pages/CustomerDashboard.jsx';
 import Shops from './pages/Shops.jsx';
 import Products from './pages/Products.jsx';
+import Companies from './pages/Companies.jsx';
 import IncomingStock from './pages/IncomingStock.jsx';
 import Deliveries from './pages/Deliveries.jsx';
 import Payments from './pages/Payments.jsx';
@@ -17,7 +20,7 @@ import AreaMapping from './pages/AreaMapping.jsx';
 
 // Private Layout wrapper guarding authenticated routes
 const AppLayout = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
@@ -31,7 +34,20 @@ const AppLayout = () => {
   }
 
   if (!isAuthenticated) {
+    if (window.location.pathname.startsWith('/customer')) {
+      return <Navigate to="/customer-login" replace />;
+    }
     return <Navigate to="/login" replace />;
+  }
+
+  // If user is a customer, and we are not on a customer page, redirect to customer dashboard
+  if (user.role === 'customer' && !window.location.pathname.startsWith('/customer')) {
+    return <Navigate to="/customer/dashboard" replace />;
+  }
+
+  // If user is admin, and they navigate to a customer page, redirect to admin home
+  if (user.role !== 'customer' && window.location.pathname.startsWith('/customer')) {
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -55,12 +71,31 @@ const AppLayout = () => {
 
 // Login guard redirecting away if already authenticated
 const LoginGuard = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) return null;
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) {
+    if (user.role === 'customer') {
+      return <Navigate to="/customer/dashboard" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
 
   return <Login />;
+};
+
+const CustomerLoginGuard = () => {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) return null;
+  if (isAuthenticated) {
+    if (user.role === 'customer') {
+      return <Navigate to="/customer/dashboard" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  return <CustomerLogin />;
 };
 
 function App() {
@@ -71,18 +106,25 @@ function App() {
           <Routes>
             {/* Public Auth Gate */}
             <Route path="/login" element={<LoginGuard />} />
+            <Route path="/customer-login" element={<CustomerLoginGuard />} />
 
             {/* Protected Workspace Outlet */}
             <Route path="/" element={<AppLayout />}>
+              {/* Admin Routes */}
               <Route index element={<Dashboard />} />
               <Route path="shops" element={<Shops />} />
               <Route path="products" element={<Products />} />
+              <Route path="companies" element={<Companies />} />
               <Route path="stock" element={<IncomingStock />} />
               <Route path="deliveries" element={<Deliveries />} />
               <Route path="payments" element={<Payments />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
               <Route path="areas" element={<AreaMapping />} />
+              
+              {/* Customer Routes */}
+              <Route path="customer/dashboard" element={<CustomerDashboard />} />
+              
               {/* Fallback route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

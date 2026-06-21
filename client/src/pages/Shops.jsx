@@ -39,7 +39,8 @@ export const Shops = () => {
     area: '',
     gstNumber: '',
     creditLimit: '0',
-    notes: ''
+    notes: '',
+    password: ''
   });
 
   const fetchShops = async () => {
@@ -82,7 +83,8 @@ export const Shops = () => {
       area: '',
       gstNumber: '',
       creditLimit: '0',
-      notes: ''
+      notes: '',
+      password: ''
     });
     setIsFormOpen(true);
   };
@@ -99,7 +101,8 @@ export const Shops = () => {
       area: shop.area,
       gstNumber: shop.gstNumber || '',
       creditLimit: String(shop.creditLimit),
-      notes: shop.notes || ''
+      notes: shop.notes || '',
+      password: ''
     });
     setIsFormOpen(true);
   };
@@ -353,6 +356,15 @@ export const Shops = () => {
                 placeholder="e.g. 9876543211"
                 value={formData.alternatePhone}
                 onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Retailer Login Password"
+                type="password"
+                placeholder={selectedShop ? "•••••••• (Leave blank to keep same)" : "Defaults to phone number"}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
             </div>
             <div>

@@ -28,6 +28,7 @@ export const IncomingStock = () => {
     quantity: '',
     costPrice: '',
     date: new Date().toISOString().split('T')[0],
+    expiryDate: '',
     notes: ''
   });
 
@@ -62,6 +63,7 @@ export const IncomingStock = () => {
       quantity: '',
       costPrice: String(products[0]?.purchasePrice || '0'),
       date: new Date().toISOString().split('T')[0],
+      expiryDate: '',
       notes: ''
     });
     setIsFormOpen(true);
@@ -141,6 +143,7 @@ export const IncomingStock = () => {
                   <TableHead>Quantity</TableHead>
                   <TableHead>Unit Cost</TableHead>
                   <TableHead>Total Cost</TableHead>
+                  <TableHead>Expiry Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -164,6 +167,9 @@ export const IncomingStock = () => {
                     <TableCell className="font-bold text-emerald-400">+{entry.quantity} {entry.product?.unitType || 'pcs'}</TableCell>
                     <TableCell className="font-semibold text-slate-400">₹{entry.costPrice.toFixed(2)}</TableCell>
                     <TableCell className="font-bold text-slate-200">₹{(entry.quantity * entry.costPrice).toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="text-xs text-slate-500 font-semibold">
+                      {entry.expiryDate ? new Date(entry.expiryDate).toLocaleDateString('en-IN') : 'N/A'}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         onClick={() => handleDeleteOpen(entry)}
@@ -212,6 +218,14 @@ export const IncomingStock = () => {
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Product Expiry Date"
+                type="date"
+                value={formData.expiryDate}
+                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
               />
             </div>
             <div className="md:col-span-2">

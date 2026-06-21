@@ -20,7 +20,7 @@ export const getAllStockEntries = async (req, res, next) => {
 
 export const createStockEntry = async (req, res, next) => {
   try {
-    const { supplierName, invoiceNumber, productId, quantity, costPrice, date, notes } = req.body;
+    const { supplierName, invoiceNumber, productId, quantity, costPrice, date, expiryDate, notes } = req.body;
 
     if (!supplierName || !invoiceNumber || !productId || !quantity || !costPrice) {
       return res.status(400).json({ message: 'Missing required stock entry fields' });
@@ -50,18 +50,20 @@ export const createStockEntry = async (req, res, next) => {
           quantity: qty,
           costPrice: price,
           date: date ? new Date(date) : new Date(),
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
           notes
         }
       });
 
-      // 3. Update Product Stock and optionally Update Purchase Price
+      // 3. Update Product Stock, Purchase Price, and Expiry Date
       await tx.product.update({
         where: { id: productId },
         data: {
           currentStock: {
             increment: qty
           },
-          purchasePrice: price // Update purchase price to reflect latest cost price
+          purchasePrice: price, // Update purchase price to reflect latest cost price
+          expiryDate: expiryDate ? new Date(expiryDate) : undefined
         }
       });
 
