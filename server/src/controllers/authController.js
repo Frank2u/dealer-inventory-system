@@ -92,6 +92,7 @@ export const customerLogin = async (req, res, next) => {
     const shop = await prisma.shop.findFirst({
       where: {
         OR: [
+          { username: username },
           { shopCode: username },
           { phone: username }
         ]

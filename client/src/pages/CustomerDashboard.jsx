@@ -39,6 +39,8 @@ export const CustomerDashboard = () => {
   const [orderNotes, setOrderNotes] = useState('');
   const [submittingOrder, setSubmittingOrder] = useState(false);
 
+
+
   const loadData = async () => {
     if (!user?.id) return;
     try {
@@ -159,9 +161,11 @@ export const CustomerDashboard = () => {
           <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
             Welcome, <span className="text-indigo-400">{shop?.name || user?.name}</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-            <Building className="h-3.5 w-3.5" /> Shop Code: {shop?.shopCode} | Area: {shop?.area}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1">
+            <span className="text-xs text-slate-400 flex items-center gap-1.5">
+              <Building className="h-3.5 w-3.5" /> Shop Code: {shop?.shopCode} | Area: {shop?.area}
+            </span>
+          </div>
         </div>
         <div className="text-right">
           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Credit Limit</span>
@@ -523,6 +527,8 @@ export const CustomerDashboard = () => {
           </CardContent>
         </Card>
       )}
+
+
 
     </div>
   );

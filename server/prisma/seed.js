@@ -189,6 +189,7 @@ async function main() {
         creditLimit: 50000.0,
         notes: 'Premium retail customer, delivers daily in the morning.',
         currentDue: 0.0,
+        username: 'supermart',
         password: shopPasswords[0]
       },
     }),
@@ -204,6 +205,7 @@ async function main() {
         creditLimit: 30000.0,
         notes: 'Prefers digital payments. Check for expiry dates on dairy products.',
         currentDue: 0.0,
+        username: 'kwikstop',
         password: shopPasswords[1]
       },
     }),
@@ -218,6 +220,7 @@ async function main() {
         creditLimit: 15000.0,
         notes: 'Small shop. Cash deliveries only.',
         currentDue: 0.0,
+        username: 'cornerstore',
         password: shopPasswords[2]
       },
     }),

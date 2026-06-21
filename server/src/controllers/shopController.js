@@ -86,7 +86,7 @@ export const getShopById = async (req, res, next) => {
 
 export const createShop = async (req, res, next) => {
   try {
-    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes, password } = req.body;
+    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes, username, password } = req.body;
 
     if (!name || !ownerName || !phone || !address || !area) {
       return res.status(400).json({ message: 'Name, Owner Name, Phone, Address and Area are required' });
@@ -140,6 +140,7 @@ export const createShop = async (req, res, next) => {
         creditLimit: parseFloat(creditLimit) || 0,
         notes,
         currentDue: 0,
+        username: username ? username.trim() : shopCode.toLowerCase(),
         password: hashedPassword
       }
     });
@@ -153,7 +154,7 @@ export const createShop = async (req, res, next) => {
 export const updateShop = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes, password } = req.body;
+    const { name, ownerName, phone, alternatePhone, address, area, gstNumber, creditLimit, notes, username, password } = req.body;
 
     const shop = await prisma.shop.findUnique({ where: { id } });
     if (!shop) {
@@ -178,6 +179,7 @@ export const updateShop = async (req, res, next) => {
         gstNumber,
         creditLimit: creditLimit !== undefined ? parseFloat(creditLimit) : undefined,
         notes,
+        username: username !== undefined ? username.trim() : undefined,
         password: hashedPassword
       }
     });

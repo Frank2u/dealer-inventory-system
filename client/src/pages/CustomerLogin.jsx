@@ -25,7 +25,7 @@ export const CustomerLogin = () => {
       await customerLogin(username, password);
       toast.success('Successfully logged into Customer Portal!');
     } catch (err) {
-      toast.error(err.message || 'Invalid shop code, phone, or password');
+      toast.error(err.message || 'Invalid username, shop code, phone, or password');
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export const CustomerLogin = () => {
             SHP
           </div>
           <CardTitle className="text-xl">Retailer Portal</CardTitle>
-          <CardDescription>Enter registered shop code or phone to access bills and order stock</CardDescription>
+          <CardDescription>Enter registered username, shop code or phone to access bills and order stock</CardDescription>
         </CardHeader>
         
         <CardContent className="p-6 pt-2">
@@ -55,8 +55,8 @@ export const CustomerLogin = () => {
                 <Store className="h-4.5 w-4.5" />
               </span>
               <Input
-                label="Shop Code or Phone Number"
-                placeholder="e.g. SL-0001 or 9876543210"
+                label="Username, Shop Code or Phone"
+                placeholder="e.g. supermart, DT-0001 or 9876543210"
                 className="pl-10"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -65,7 +65,7 @@ export const CustomerLogin = () => {
             </div>
 
             {/* Password Input */}
-            <div className="relative">
+            <div className="relative flex flex-col gap-1">
               <span className="absolute left-3.5 top-9.5 text-slate-500">
                 <Lock className="h-4.5 w-4.5" />
               </span>
@@ -90,7 +90,7 @@ export const CustomerLogin = () => {
             </Button>
             
             <div className="text-center mt-4 bg-slate-900/30 border border-slate-900/80 p-2.5 rounded-lg text-[10px] text-slate-400 font-medium">
-              💡 <span className="text-slate-300 font-bold">First time logging in?</span> Your default password matches your primary registered phone number.
+              💡 <span className="text-slate-300 font-bold">First time logging in?</span> Your default username is your shop code in lowercase (e.g. <span className="text-slate-300 font-semibold">dt-0001</span>), and password is your phone number.
             </div>
           </form>
         </CardContent>

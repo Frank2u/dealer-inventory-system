@@ -43,24 +43,25 @@ async function main() {
     console.log(`Associated product "${product.name}" with company "${rawName}"`);
   }
 
-  // 2. Migrate Shops (set default password to phone)
+  // 2. Migrate Shops (set default username and password)
   const shops = await prisma.shop.findMany();
   console.log(`Found ${shops.length} shops to check.`);
 
   for (const shop of shops) {
-    if (!shop.password) {
-      const defaultPassword = shop.phone ? shop.phone.trim() : '123456';
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(defaultPassword, salt);
+    const defaultPassword = shop.phone ? shop.phone.trim() : '123456';
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(defaultPassword, salt);
 
-      await prisma.shop.update({
-        where: { id: shop.id },
-        data: {
-          password: hashedPassword
-        }
-      });
-      console.log(`Set password for shop "${shop.name}" (defaults to phone: ${defaultPassword})`);
-    }
+    const targetUsername = shop.username || (shop.shopCode ? shop.shopCode.trim().toLowerCase() : '') || shop.phone || '';
+
+    await prisma.shop.update({
+      where: { id: shop.id },
+      data: {
+        username: targetUsername,
+        password: shop.password || hashedPassword
+      }
+    });
+    console.log(`Updated shop "${shop.name}": username = "${targetUsername}"`);
   }
 
   console.log('Migration completed successfully!');

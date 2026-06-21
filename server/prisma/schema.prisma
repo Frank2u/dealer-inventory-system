@@ -63,6 +63,7 @@ model Shop {
   creditLimit    Float      @default(0)
   notes          String?
   currentDue     Float      @default(0)
+  username       String     @default("")
   password       String     @default("")
   deliveries     Delivery[]
   payments       Payment[]

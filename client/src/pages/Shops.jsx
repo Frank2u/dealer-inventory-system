@@ -40,6 +40,7 @@ export const Shops = () => {
     gstNumber: '',
     creditLimit: '0',
     notes: '',
+    username: '',
     password: ''
   });
 
@@ -84,6 +85,7 @@ export const Shops = () => {
       gstNumber: '',
       creditLimit: '0',
       notes: '',
+      username: '',
       password: ''
     });
     setIsFormOpen(true);
@@ -102,6 +104,7 @@ export const Shops = () => {
       gstNumber: shop.gstNumber || '',
       creditLimit: String(shop.creditLimit),
       notes: shop.notes || '',
+      username: shop.username || '',
       password: ''
     });
     setIsFormOpen(true);
@@ -356,6 +359,14 @@ export const Shops = () => {
                 placeholder="e.g. 9876543211"
                 value={formData.alternatePhone}
                 onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Input
+                label="Retailer Portal Username"
+                placeholder={selectedShop ? "e.g. supermart" : "Defaults to lowercase shop code"}
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
             <div>
