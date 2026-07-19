@@ -119,3 +119,13 @@ You can swap between database providers (SQLite and PostgreSQL) at any time.
 13. **Customer Portal & Dedicated Login (`/customer-login`):**
     * Retail shop customers can log in securely using their Shop Code, custom username, or phone number alongside their password.
     * Transparent account statements: Provides customers a dedicated dashboard to trace credit limits, outstanding balances, pending invoices, delivery history, and payment collection logs.
+
+---
+
+## 🔑 Customer Portal & Login UI Design
+
+The Customer Portal features a premium, modern, distraction-free **Login Page** (`/customer-login`) with the following elements:
+* **Rich Aesthetics**: Styled with a dark glassmorphic container layout (`bg-slate-950`), absolute background blur blobs, and clean typography.
+* **Flexible Authentication**: Retailers can sign in using their **Shop Code** (e.g. `DT-0001`), **Username** (e.g. `supermart`), or their registered **Phone Number** alongside their account password.
+* **Onboarding Tooltip**: Includes a helper callout explaining default password setup (which defaults to the shop's phone number upon registration) to guide new customers.
+* **Personalized Dashboard**: Upon successful login, the customer is greeted by their **Store Overview** displaying active credit utilization, pending invoice receipts, dispatch logs, and payment registries.
