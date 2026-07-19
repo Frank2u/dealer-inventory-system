@@ -87,13 +87,28 @@ You can swap between database providers (SQLite and PostgreSQL) at any time.
 
 1. **Authentication:** Secure session routes guarded by JSON Web Token (JWT) tokens.
 2. **Dashboard Visualizations:** Real-time analytics stats cards, area charts for sales ledgers, and horizontal bar charts for debtor credits using **Recharts**.
-3. **Automated Stock Deductions:**
+3. **Suppliers Directory & FEFO Stock Management:**
+   * Replaced old generic `Companies` model with a comprehensive `Supplier` model.
+   * Product catalog enforces unique (Supplier + Product) pairs.
+   * Integrated FEFO (First-Expired, First-Out) inventory batch tracing.
+   * Products catalog grid lists detailed lot information, including the oldest stock's price, lot size, and expiry date, alongside the latest lot's price and expiry date.
+4. **Interactive Multi-Lot Sales Allocations:**
+   * Grid layout on the dispatch screen lists all available batches (lots) with checkboxes.
+   * Selecting a lot automatically defaults the requested allocation quantity to `1` unit, while unselecting resets it to `0`.
+   * Unselected batch rows visually fade (opacity 60%) and lock user inputs.
+   * Display of allowed discount boundaries (`Allowed: Min% - Max%`) under each lot row.
+5. **Dedicated Full-Page Creation Views:**
+   * Migrated all CRUD modals to dedicated standalone forms (`CreateProduct`, `CreateShop`, `CreateSupplier`, `CreateStock`, `CreateArea`, and `CreatePayment`) with spacious card grids and navigation breadcrumbs.
+6. **Mobile & Viewport Responsiveness:**
+   * Adapts columns dynamically between desktops, tablets, and mobile resolutions.
+   * Overflow wrappers added to all dashboard lists and ledgers to guarantee smooth scrolling on narrow viewports.
+7. **Automated Stock Deductions:**
    * Incoming Stock replenishment increases product catalog stocks.
    * Dispatched Delivery Invoices deduct from catalog stocks (with validations to block negative stock levels).
-4. **Account Balances (Dues):**
+8. **Account Balances (Dues):**
    * Invoice dispatches add to outstanding shop balances.
    * Collections subtract from remaining invoice dues and shop balances.
-5. **FIFO Collection Routing:** Logs general payments against customer accounts, automatically applying allocations to the oldest unpaid invoices first (FIFO).
-6. **Printable Invoices:** High-fidelity business invoice structures that render clean print-previews and call `window.print()` dynamically.
-7. **CSV Exports:** Client-side CSV generation allowing data downloads directly to Excel format.
-8. **JSON Data Backups:** Allows administrators to download structured JSON snapshots of the system database.
+9. **FIFO Collection Routing:** Logs general payments against customer accounts, automatically applying allocations to the oldest unpaid invoices first (FIFO).
+10. **Printable Invoices:** High-fidelity business invoice structures that render clean print-previews and call `window.print()` dynamically.
+11. **CSV Exports:** Client-side CSV generation allowing data downloads directly to Excel format.
+12. **JSON Data Backups:** Allows administrators to download structured JSON snapshots of the system database.
