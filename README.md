@@ -22,9 +22,13 @@ Run the migrations to create the database schema and populate it with initial ca
 npm run db:migrate
 ```
 
-*The seed script will create a default administrator:*
-* **Username:** `admin`
-* **Password:** `admin123`
+*The seed script will create default credentials:*
+* **Administrator Portal:**
+  * **Username:** `admin`
+  * **Password:** `admin123`
+* **Customer Portal (`/customer-login`):**
+  * **Username:** `supermart`
+  * **Password:** `9876543210` (Seeded phone number)
 
 ### 3. Running Locally (Development Mode)
 
@@ -112,3 +116,6 @@ You can swap between database providers (SQLite and PostgreSQL) at any time.
 10. **Printable Invoices:** High-fidelity business invoice structures that render clean print-previews and call `window.print()` dynamically.
 11. **CSV Exports:** Client-side CSV generation allowing data downloads directly to Excel format.
 12. **JSON Data Backups:** Allows administrators to download structured JSON snapshots of the system database.
+13. **Customer Portal & Dedicated Login (`/customer-login`):**
+    * Retail shop customers can log in securely using their Shop Code, custom username, or phone number alongside their password.
+    * Transparent account statements: Provides customers a dedicated dashboard to trace credit limits, outstanding balances, pending invoices, delivery history, and payment collection logs.
