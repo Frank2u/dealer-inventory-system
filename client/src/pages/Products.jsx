@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api.js';
 import { useToast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -12,39 +13,22 @@ import { Search, Plus, Edit2, Trash2, FolderPlus, Package, Check, AlertCircle } 
 
 export const Products = () => {
   const toast = useToast();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [companies, setCompanies] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedCatId, setSelectedCatId] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Modals state
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCatFormOpen, setIsCatFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   // Form states
   const [newCatName, setNewCatName] = useState('');
-  const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    brand: '',
-    categoryId: '',
-    lotSize: '1',
-    unitType: 'pcs',
-    purchasePrice: '0',
-    sellingPrice: '0',
-    companyId: '',
-    mrp: '0',
-    discountPercent: '',
-    currentStock: '0',
-    minStockAlert: '5',
-    expiryDate: '',
-    gstPercent: '0'
-  });
 
   const parseDiscountRange = (discountStr) => {
     if (!discountStr) return { min: 0, max: 0 };
@@ -62,11 +46,11 @@ export const Products = () => {
       const [prods, cats, comps] = await Promise.all([
         api.products.getAll(search, selectedCatId, lowStockOnly),
         api.products.getCategories(),
-        api.companies.getAll()
+        api.suppliers.getAll()
       ]);
       setProducts(prods);
       setCategories(cats);
-      setCompanies(comps);
+      setSuppliers(comps);
     } catch (err) {
       toast.error('Failed to load catalog inventory');
     } finally {
@@ -79,69 +63,11 @@ export const Products = () => {
   }, [search, selectedCatId, lowStockOnly]);
 
   const handleCreateOpen = () => {
-    setSelectedProduct(null);
-    setFormData({
-      name: '',
-      sku: '',
-      brand: '',
-      categoryId: categories[0]?.id || '',
-      lotSize: '1',
-      unitType: 'pcs',
-      purchasePrice: '0',
-      sellingPrice: '0',
-      companyId: companies[0]?.id || '',
-      mrp: '0',
-      discountPercent: '',
-      currentStock: '0',
-      minStockAlert: '5',
-      expiryDate: '',
-      gstPercent: '0'
-    });
-    setIsFormOpen(true);
+    navigate('/products/new');
   };
 
   const handleEditOpen = (prod) => {
-    setSelectedProduct(prod);
-    setFormData({
-      name: prod.name,
-      sku: prod.sku,
-      brand: prod.brand,
-      categoryId: prod.categoryId,
-      lotSize: String(prod.lotSize),
-      unitType: prod.unitType,
-      purchasePrice: String(prod.purchasePrice),
-      sellingPrice: String(prod.sellingPrice),
-      companyId: prod.companyId || '',
-      mrp: String(prod.mrp || 0),
-      discountPercent: prod.discountPercent || '',
-      currentStock: String(prod.currentStock),
-      minStockAlert: String(prod.minStockAlert),
-      expiryDate: prod.expiryDate ? prod.expiryDate.split('T')[0] : '',
-      gstPercent: String(prod.gstPercent || 0)
-    });
-    setIsFormOpen(true);
-  };
-
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.sku || !formData.brand || !formData.categoryId || !formData.purchasePrice || !formData.sellingPrice) {
-      toast.error('Please fill in all mandatory fields');
-      return;
-    }
-
-    try {
-      if (selectedProduct) {
-        await api.products.update(selectedProduct.id, formData);
-        toast.success('Product updated successfully');
-      } else {
-        await api.products.create(formData);
-        toast.success('Product added successfully');
-      }
-      setIsFormOpen(false);
-      loadData();
-    } catch (err) {
-      toast.error(err.message || 'Action failed');
-    }
+    navigate(`/products/${prod.id}/edit`);
   };
 
   const handleDeleteOpen = (prod) => {
@@ -241,271 +167,149 @@ export const Products = () => {
           ) : products.length === 0 ? (
             <div className="p-10 text-center text-slate-500 font-semibold">No products in inventory catalog</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product details</TableHead>
-                  <TableHead>SKU Code</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Lot Size</TableHead>
-                  <TableHead>Buying Price</TableHead>
-                  <TableHead>Selling Price</TableHead>
-                  <TableHead>Total Profit</TableHead>
-                  <TableHead>Current Stock</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products.map((prod) => {
-                  const isLow = prod.currentStock <= prod.minStockAlert;
-                  return (
-                    <TableRow key={prod.id} className={isLow ? 'bg-amber-500/5 hover:bg-amber-500/10' : ''}>
-                      <TableCell className="font-bold text-slate-200">
-                        <div className="flex flex-col">
-                          <span>{prod.name}</span>
-                          <span className="text-[10px] text-slate-500 font-semibold uppercase">{prod.unitType} packing</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs text-indigo-400">{prod.sku}</TableCell>
-                      <TableCell className="font-semibold text-slate-300">
-                        <div className="flex flex-col">
-                           <span>{prod.brand}</span>
-                           {prod.company?.name && (
-                             <span className="text-[10px] text-slate-500 font-semibold truncate max-w-[120px]" title={prod.company.name}>
-                               {prod.company.name}
-                             </span>
-                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-300">{prod.category?.name || 'N/A'}</TableCell>
-                      <TableCell className="text-slate-400">{prod.lotSize} pcs</TableCell>
-                      <TableCell className="font-semibold text-slate-400">₹{prod.purchasePrice.toFixed(2)}</TableCell>
-                      <TableCell className="font-bold text-slate-200">
-                        <div className="flex flex-col">
-                          <span>₹{prod.sellingPrice.toFixed(2)}</span>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {prod.gstPercent > 0 ? (
-                              <Badge variant="info" className="text-[9px] px-1 py-0 tracking-wider font-bold">
-                                GST: {prod.gstPercent}%
+            <div className="overflow-x-auto w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product details</TableHead>
+                    <TableHead>SKU Code</TableHead>
+                    <TableHead>Brand</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Lot Size</TableHead>
+                    <TableHead>Base Rates</TableHead>
+                    <TableHead>Total Profit</TableHead>
+                    <TableHead>Current Stock</TableHead>
+                    <TableHead>Oldest Lot (FEFO)</TableHead>
+                    <TableHead>Latest Lot</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((prod) => {
+                    const isLow = prod.currentStock <= prod.minStockAlert;
+                    return (
+                      <TableRow key={prod.id} className={isLow ? 'bg-amber-500/5 hover:bg-amber-500/10' : ''}>
+                        <TableCell className="font-bold text-slate-200">
+                          <div className="flex flex-col">
+                            <span>{prod.name}</span>
+                            <span className="text-[10px] text-slate-500 font-semibold uppercase">{prod.unitType} packing</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-indigo-400">{prod.sku}</TableCell>
+                        <TableCell className="font-semibold text-slate-300">
+                          <div className="flex flex-col">
+                             <span>{prod.brand}</span>
+                             {prod.supplier && (
+                               <span className="text-[10px] text-slate-500 font-semibold truncate max-w-[150px]" title={prod.supplier.name}>
+                                 {prod.supplier.name}
+                               </span>
+                             )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-slate-300">{prod.category?.name || 'N/A'}</TableCell>
+                        <TableCell className="text-slate-400">{prod.lotSize} pcs</TableCell>
+                        <TableCell className="text-slate-350 text-xs">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-slate-400">Buy: ₹{prod.purchasePrice.toFixed(2)}</span>
+                            <span className="font-bold text-slate-200">Sell: ₹{prod.sellingPrice.toFixed(2)}</span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {prod.gstPercent > 0 ? (
+                                <Badge variant="info" className="text-[8px] px-1 py-0 tracking-wider font-bold">
+                                  GST: {prod.gstPercent}%
+                                </Badge>
+                              ) : (
+                                <span className="text-[8px] text-slate-500 font-semibold uppercase">No GST</span>
+                              )}
+                              {prod.mrp > 0 && (
+                                <span className="text-[9px] text-slate-500 font-medium">
+                                  MRP: ₹{prod.mrp.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-bold text-emerald-400">
+                          ₹{(prod.profit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-sm font-black ${isLow ? 'text-amber-400' : 'text-slate-200'}`}>
+                              {prod.currentStock}
+                            </span>
+                            {isLow && (
+                              <Badge variant="warning" className="text-[9px] px-1 py-0 border-amber-500/20">
+                                Low Stock
                               </Badge>
-                            ) : (
-                              <span className="text-[9px] text-slate-500 font-semibold uppercase">No GST</span>
-                            )}
-                            {prod.mrp > 0 && (
-                              <span className="text-[10px] text-slate-500 font-medium">
-                                MRP: ₹{prod.mrp.toFixed(2)} {prod.discountPercent && `(${prod.discountPercent})`}
-                              </span>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-bold text-emerald-400">
-                        ₹{(prod.profit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-sm font-black ${isLow ? 'text-amber-400' : 'text-slate-200'}`}>
-                            {prod.currentStock}
-                          </span>
-                          {isLow && (
-                            <Badge variant="warning" className="text-[9px] px-1 py-0 border-amber-500/20">
-                              Low Stock
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-slate-500 font-semibold">
-                        {prod.expiryDate ? new Date(prod.expiryDate).toLocaleDateString('en-IN') : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            onClick={() => handleEditOpen(prod)}
-                            variant="ghost"
-                            size="sm"
-                          >
-                            <Edit2 className="h-4 w-4 text-indigo-400" />
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteOpen(prod)}
-                            variant="ghost"
-                            size="sm"
-                          >
-                            <Trash2 className="h-4 w-4 text-rose-400" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-400">
+                          {(() => {
+                            const oldest = prod.lots && prod.lots.length > 0 ? prod.lots[0] : null;
+                            if (!oldest) return <span className="text-slate-600 font-normal">N/A</span>;
+                            return (
+                              <div className="flex flex-col gap-0.5 leading-normal">
+                                <span className="font-bold text-amber-400">
+                                  Exp: {oldest.expiryDate ? new Date(oldest.expiryDate).toLocaleDateString('en-IN') : 'No Expiry'}
+                                </span>
+                                <span className="text-[10px] text-slate-300 font-semibold">
+                                  Stock: {oldest.remainingStock} pcs
+                                </span>
+                                <span className="text-[9px] text-slate-500 font-medium">
+                                  Cost: ₹{oldest.costPrice.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-xs text-slate-400">
+                          {(() => {
+                            const latest = prod.lots && prod.lots.length > 0 ? prod.lots[prod.lots.length - 1] : null;
+                            if (!latest) return <span className="text-slate-600 font-normal">N/A</span>;
+                            return (
+                              <div className="flex flex-col gap-0.5 leading-normal">
+                                <span className="font-bold text-emerald-400">
+                                  Exp: {latest.expiryDate ? new Date(latest.expiryDate).toLocaleDateString('en-IN') : 'No Expiry'}
+                                </span>
+                                <span className="text-[10px] text-slate-300 font-semibold">
+                                  Stock: {latest.remainingStock} pcs
+                                </span>
+                                <span className="text-[9px] text-slate-500 font-medium">
+                                  Cost: ₹{latest.costPrice.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              onClick={() => handleEditOpen(prod)}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              <Edit2 className="h-4 w-4 text-indigo-400" />
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteOpen(prod)}
+                              variant="ghost"
+                              size="sm"
+                            >
+                              <Trash2 className="h-4 w-4 text-rose-400" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Dialog
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        title={selectedProduct ? 'Edit Catalog Product' : 'Add New Inventory Product'}
-        maxWidth="lg"
-      >
-        <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2.5">
-            <div className="md:col-span-2">
-              <Input
-                label="Product Name *"
-                placeholder="e.g. Coca Cola 250ml"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="SKU Code (Must be unique) *"
-                placeholder="e.g. BEV-CC-250"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Brand / Manufacturer *"
-                placeholder="e.g. Coca Cola Co."
-                value={formData.brand}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-              />
-            </div>
-            <div>
-              <Select
-                label="Product Company"
-                value={formData.companyId}
-                onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
-              >
-                <option value="" className="bg-slate-900">-- None / Select Company --</option>
-                {companies.map(c => (
-                  <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Select
-                label="Product Category *"
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              >
-                {categories.map(c => (
-                  <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Input
-                label="Unit Type (e.g. case, box) *"
-                placeholder="case"
-                value={formData.unitType}
-                onChange={(e) => setFormData({ ...formData, unitType: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Lot/Pack Size (Qty per Unit) *"
-                type="number"
-                value={formData.lotSize}
-                onChange={(e) => setFormData({ ...formData, lotSize: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Minimum Alert Limit *"
-                type="number"
-                value={formData.minStockAlert}
-                onChange={(e) => setFormData({ ...formData, minStockAlert: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Initial Stock Quantity"
-                type="number"
-                value={formData.currentStock}
-                onChange={(e) => setFormData({ ...formData, currentStock: e.target.value })}
-                disabled={!!selectedProduct}
-              />
-            </div>
-            <div>
-              <Input
-                label="MRP (INR) *"
-                type="number"
-                value={formData.mrp}
-                onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Approved Discount Range (%)"
-                placeholder="e.g. 12% - 18% or 15%"
-                value={formData.discountPercent}
-                onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Purchase Price (INR) *"
-                type="number"
-                value={formData.purchasePrice}
-                onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-              />
-            </div>
-            <div>
-              <div className="flex flex-col gap-1">
-                <Input
-                  label="Selling Price (INR) *"
-                  type="number"
-                  value={formData.sellingPrice}
-                  onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })}
-                />
-                {(() => {
-                  const { min, max } = parseDiscountRange(formData.discountPercent);
-                  const mrpVal = parseFloat(formData.mrp) || 0;
-                  if (mrpVal > 0 && formData.discountPercent) {
-                    const minPrice = mrpVal * (1 - max / 100);
-                    const maxPrice = mrpVal * (1 - min / 100);
-                    return (
-                      <span className="text-[10px] text-emerald-400 font-semibold px-1">
-                        Approved Range: ₹{minPrice.toFixed(2)} - ₹{maxPrice.toFixed(2)}
-                      </span>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-            </div>
-            <div>
-              <Input
-                label="Product Expiry Date"
-                type="date"
-                value={formData.expiryDate}
-                onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="GST Rate (%)"
-                type="number"
-                placeholder="0"
-                value={formData.gstPercent}
-                onChange={(e) => setFormData({ ...formData, gstPercent: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 mt-4 border-t border-slate-800/80 pt-4">
-            <Button onClick={() => setIsFormOpen(false)} variant="secondary">Cancel</Button>
-            <Button type="submit" variant="primary">Save Product</Button>
-          </div>
-        </form>
-      </Dialog>
+
 
       {/* 4. Category Add Modal */}
       <Dialog

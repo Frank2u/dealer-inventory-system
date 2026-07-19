@@ -57,7 +57,13 @@ export const CustomerDashboard = () => {
       // Initialize order quantities to empty
       const initialItems = {};
       productsData.forEach(p => {
-        initialItems[p.id] = 0;
+        if (p.lots && p.lots.length > 0) {
+          p.lots.forEach(lot => {
+            initialItems[`${p.id}:${lot.id}`] = 0;
+          });
+        } else {
+          initialItems[`${p.id}:`] = 0;
+        }
       });
       setOrderItems(initialItems);
     } catch (err) {
@@ -78,10 +84,15 @@ export const CustomerDashboard = () => {
     // Extract non-zero items
     const itemsToSubmit = Object.entries(orderItems)
       .filter(([_, qty]) => qty > 0)
-      .map(([productId, qty]) => {
+      .map(([key, qty]) => {
+        const parts = key.split(':');
+        const productId = parts[0];
+        const stockEntryId = parts[1] || null;
+        
         const prod = products.find(p => p.id === productId);
         return {
           productId,
+          stockEntryId,
           quantity: qty,
           price: prod ? prod.sellingPrice : 0
         };
@@ -107,9 +118,16 @@ export const CustomerDashboard = () => {
       toast.success('Delivery request submitted successfully! Pending dispatcher approval.');
       
       // Reset quantities
+      // Reset quantities
       const resetItems = {};
       products.forEach(p => {
-        resetItems[p.id] = 0;
+        if (p.lots && p.lots.length > 0) {
+          p.lots.forEach(lot => {
+            resetItems[`${p.id}:${lot.id}`] = 0;
+          });
+        } else {
+          resetItems[`${p.id}:`] = 0;
+        }
       });
       setOrderItems(resetItems);
       setOrderNotes('');
@@ -122,11 +140,22 @@ export const CustomerDashboard = () => {
     }
   };
 
-  const updateItemQty = (prodId, change) => {
+  const updateItemQty = (key, change) => {
+    const parts = key.split(':');
+    const prodId = parts[0];
+    const lotId = parts[1];
+
+    const prod = products.find(p => p.id === prodId);
+    let maxStock = prod ? prod.currentStock : 9999;
+    if (lotId && prod) {
+      const lot = prod.lots?.find(l => l.id === lotId);
+      if (lot) maxStock = lot.remainingStock;
+    }
+
     setOrderItems(prev => {
-      const current = prev[prodId] || 0;
-      const next = Math.max(0, current + change);
-      return { ...prev, [prodId]: next };
+      const current = prev[key] || 0;
+      const next = Math.min(maxStock, Math.max(0, current + change));
+      return { ...prev, [key]: next };
     });
   };
 
@@ -330,65 +359,128 @@ export const CustomerDashboard = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product Name</TableHead>
-                    <TableHead>Brand / Company</TableHead>
-                    <TableHead>Lot Size</TableHead>
+                    <TableHead>Supplier / Brand</TableHead>
+                    <TableHead>Expiry Date</TableHead>
+                    <TableHead>Available Stock</TableHead>
                     <TableHead>Selling Price</TableHead>
-                    <TableHead>Tax Rate</TableHead>
+                    <TableHead>GST Value</TableHead>
                     <TableHead>Order Quantity</TableHead>
                     <TableHead className="text-right">Subtotal</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((prod) => {
-                    const qty = orderItems[prod.id] || 0;
-                    return (
-                      <TableRow key={prod.id}>
-                        <TableCell className="font-bold text-slate-200">
-                          <div className="flex flex-col">
-                            <span>{prod.name}</span>
-                            <span className="text-[10px] text-slate-500 font-semibold uppercase">{prod.unitType} packing</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-slate-450 font-semibold">
-                          <div className="flex flex-col leading-tight">
-                            <span>{prod.brand}</span>
-                            {prod.company?.name && <span className="text-[10px] text-slate-600 truncate max-w-[150px]">{prod.company.name}</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-slate-400">{prod.lotSize} pcs</TableCell>
-                        <TableCell className="font-bold text-slate-200">₹{prod.sellingPrice.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs">
-                          {prod.gstPercent > 0 ? (
-                            <Badge variant="info" className="text-[9px] px-1 tracking-wider">{prod.gstPercent}% GST</Badge>
-                          ) : (
-                            <span className="text-[10px] text-slate-500 uppercase">No GST</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => updateItemQty(prod.id, -1)}
-                              className="h-7 w-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-slate-800 cursor-pointer"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </button>
-                            <span className="w-8 text-center text-xs font-bold text-slate-100">{qty}</span>
-                            <button
-                              type="button"
-                              onClick={() => updateItemQty(prod.id, 1)}
-                              className="h-7 w-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-slate-800 cursor-pointer"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-indigo-400">
-                          ₹{(prod.sellingPrice * qty).toFixed(2)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {(() => {
+                    const rows = [];
+                    products.forEach(prod => {
+                      if (prod.lots && prod.lots.length > 0) {
+                        prod.lots.forEach(lot => {
+                          rows.push({
+                            product: prod,
+                            lot: lot,
+                            key: `${prod.id}:${lot.id}`
+                          });
+                        });
+                      } else {
+                        rows.push({
+                          product: prod,
+                          lot: null,
+                          key: `${prod.id}:`
+                        });
+                      }
+                    });
+
+                    if (rows.length === 0) {
+                      return (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center p-6 text-slate-500 font-semibold">
+                            No products available in catalog.
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+
+                    return rows.map((row) => {
+                      const prod = row.product;
+                      const lot = row.lot;
+                      const qty = orderItems[row.key] || 0;
+
+                      return (
+                        <TableRow key={row.key}>
+                          <TableCell className="font-bold text-slate-200">
+                            <div className="flex flex-col gap-0.5">
+                              <span>{prod.name}</span>
+                              <span className="text-[10px] text-slate-500 font-semibold uppercase">{prod.unitType} packing (Lot Size: {prod.lotSize})</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-slate-350 font-semibold">
+                            <div className="flex flex-col leading-tight">
+                              <span className="text-slate-200 text-xs">{prod.supplier?.name || 'Unknown'}</span>
+                              <span className="text-[9px] text-slate-500 font-medium">{prod.brand}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs font-semibold text-slate-400">
+                            {lot && lot.expiryDate ? (
+                              <span className="text-amber-400">{new Date(lot.expiryDate).toLocaleDateString('en-IN')}</span>
+                            ) : (
+                              <span className="text-slate-500 font-normal">No Expiry</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs font-semibold text-slate-400">
+                            {lot ? (
+                              <span className={lot.remainingStock <= 5 ? 'text-amber-400' : 'text-slate-300'}>
+                                {lot.remainingStock} pcs
+                              </span>
+                            ) : (
+                              <span className={prod.currentStock <= 5 ? 'text-amber-400' : 'text-slate-300'}>
+                                {prod.currentStock} pcs
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-bold text-slate-200">₹{prod.sellingPrice.toFixed(2)}</TableCell>
+                          <TableCell className="text-xs">
+                            {(() => {
+                              const itemTotal = prod.sellingPrice * qty;
+                              const gstVal = itemTotal * (prod.gstPercent / (100 + prod.gstPercent));
+                              return (
+                                <div className="flex flex-col leading-tight">
+                                  {prod.gstPercent > 0 ? (
+                                    <Badge variant="info" className="text-[8px] px-1 py-0 tracking-wider w-fit font-bold">{prod.gstPercent}% GST</Badge>
+                                  ) : (
+                                    <span className="text-[9px] text-slate-500 uppercase font-semibold">No GST</span>
+                                  )}
+                                  {qty > 0 && prod.gstPercent > 0 && (
+                                    <span className="text-[9px] text-indigo-400 font-bold mt-0.5">₹{gstVal.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updateItemQty(row.key, -1)}
+                                className="h-7 w-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-slate-800 cursor-pointer"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="w-8 text-center text-xs font-bold text-slate-100">{qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateItemQty(row.key, 1)}
+                                className="h-7 w-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center border border-slate-800 cursor-pointer"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-indigo-400">
+                            ₹{(prod.sellingPrice * qty).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    });
+                  })()}
                 </TableBody>
               </Table>
             </CardContent>

@@ -1,5 +1,105 @@
 import prisma from '../prisma.js';
 
+// Helper to consume stock from product lots using FEFO (First Expired First Out)
+async function consumeStockFromLots(tx, productId, quantityNeeded) {
+  let remainingToConsume = quantityNeeded;
+
+  const lots = await tx.stockEntry.findMany({
+    where: {
+      productId,
+      remainingStock: { gt: 0 }
+    }
+  });
+
+  // Sort lots using FEFO:
+  // 1. Expiry date ASC (non-null first, null last)
+  // 2. Entry date ASC (oldest first)
+  lots.sort((a, b) => {
+    if (a.expiryDate && b.expiryDate) {
+      return new Date(a.expiryDate) - new Date(b.expiryDate);
+    }
+    if (a.expiryDate && !b.expiryDate) {
+      return -1;
+    }
+    if (!a.expiryDate && b.expiryDate) {
+      return 1;
+    }
+    return new Date(a.date) - new Date(b.date);
+  });
+
+  for (const lot of lots) {
+    const consume = Math.min(lot.remainingStock, remainingToConsume);
+    if (consume > 0) {
+      await tx.stockEntry.update({
+        where: { id: lot.id },
+        data: {
+          remainingStock: {
+            decrement: consume
+          }
+        }
+      });
+      remainingToConsume -= consume;
+    }
+    if (remainingToConsume === 0) break;
+  }
+
+  // If there's still leftover quantity, deduct it from the newest lot
+  if (remainingToConsume > 0) {
+    const newestLot = await tx.stockEntry.findFirst({
+      where: { productId },
+      orderBy: { date: 'desc' }
+    });
+    if (newestLot) {
+      await tx.stockEntry.update({
+        where: { id: newestLot.id },
+        data: {
+          remainingStock: {
+            decrement: remainingToConsume
+          }
+        }
+      });
+    }
+  }
+}
+
+// Helper to restore/return stock back to product lots
+async function restoreStockToLots(tx, productId, quantityToRestore) {
+  let remainingToRestore = quantityToRestore;
+
+  const lots = await tx.stockEntry.findMany({
+    where: { productId },
+    orderBy: { date: 'desc' }
+  });
+
+  for (const lot of lots) {
+    const capacity = lot.quantity - lot.remainingStock;
+    if (capacity > 0) {
+      const restore = Math.min(capacity, remainingToRestore);
+      await tx.stockEntry.update({
+        where: { id: lot.id },
+        data: {
+          remainingStock: {
+            increment: restore
+          }
+        }
+      });
+      remainingToRestore -= restore;
+    }
+    if (remainingToRestore === 0) break;
+  }
+
+  if (remainingToRestore > 0 && lots.length > 0) {
+    await tx.stockEntry.update({
+      where: { id: lots[0].id },
+      data: {
+        remainingStock: {
+          increment: remainingToRestore
+        }
+      }
+    });
+  }
+}
+
 export const getAllDeliveries = async (req, res, next) => {
   try {
     const { shopId, paymentStatus, status, date } = req.query;
@@ -117,6 +217,7 @@ export const createDelivery = async (req, res, next) => {
 
         dbItems.push({
           productId: product.id,
+          stockEntryId: item.stockEntryId || null,
           quantity: qty,
           lotSize: product.lotSize,
           price: price,
@@ -185,6 +286,18 @@ export const createDelivery = async (req, res, next) => {
               }
             }
           });
+          if (item.stockEntryId) {
+            await tx.stockEntry.update({
+              where: { id: item.stockEntryId },
+              data: {
+                remainingStock: {
+                  decrement: item.quantity
+                }
+              }
+            });
+          } else {
+            await consumeStockFromLots(tx, item.productId, item.quantity);
+          }
         }
       }
 
@@ -251,6 +364,18 @@ export const deleteDelivery = async (req, res, next) => {
               }
             }
           });
+          if (item.stockEntryId) {
+            await tx.stockEntry.update({
+              where: { id: item.stockEntryId },
+              data: {
+                remainingStock: {
+                  increment: item.quantity
+                }
+              }
+            });
+          } else {
+            await restoreStockToLots(tx, item.productId, item.quantity);
+          }
         }
       }
 
@@ -337,6 +462,7 @@ export const dispatchDelivery = async (req, res, next) => {
 
           dispatchItems.push({
             productId: product.id,
+            stockEntryId: item.stockEntryId || null,
             quantity: qty,
             lotSize: product.lotSize,
             price: price,
@@ -359,6 +485,7 @@ export const dispatchDelivery = async (req, res, next) => {
 
           dispatchItems.push({
             productId: item.productId,
+            stockEntryId: item.stockEntryId || null,
             quantity: item.quantity,
             lotSize: item.lotSize,
             price: item.price,
@@ -398,6 +525,18 @@ export const dispatchDelivery = async (req, res, next) => {
             }
           }
         });
+        if (item.stockEntryId) {
+          await tx.stockEntry.update({
+            where: { id: item.stockEntryId },
+            data: {
+              remainingStock: {
+                decrement: item.quantity
+              }
+            }
+          });
+        } else {
+          await consumeStockFromLots(tx, item.productId, item.quantity);
+        }
       }
 
       // 4. Update Shop outstanding balance
@@ -435,6 +574,7 @@ export const dispatchDelivery = async (req, res, next) => {
           data: dispatchItems.map(item => ({
             deliveryId: id,
             productId: item.productId,
+            stockEntryId: item.stockEntryId || null,
             quantity: item.quantity,
             lotSize: item.lotSize,
             price: item.price,

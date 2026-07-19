@@ -1,0 +1,76 @@
+{
+  "companies": [
+    {
+      "id": "f3fc0002-e071-436c-8f19-3476ee8e18f0",
+      "name": "Henkel Adhesives Technologies India Pvt Ltd",
+      "address": "Vikas Centre, 5th Floor, Santacruz East, Mumbai, Maharashtra",
+      "phone": "1800223040",
+      "gstNumber": "27AAACH1200D1Z6",
+      "createdAt": "2026-06-21T14:26:33.010Z",
+      "updatedAt": "2026-06-21T14:26:33.010Z"
+    },
+    {
+      "id": "d82f7a52-b453-441d-8c81-48cfbcab6f4d",
+      "name": "PepsiCo India Holdings Pvt Ltd",
+      "address": "Level 5, Tower C, DLF Cyber City, Phase III, Gurugram, Haryana",
+      "phone": "1800224020",
+      "gstNumber": "06AABCP5600K2Z2",
+      "createdAt": "2026-06-21T14:26:33.015Z",
+      "updatedAt": "2026-06-21T14:26:33.015Z"
+    },
+    {
+      "id": "fa482904-8927-4ac9-9b22-2eb100240199",
+      "name": "Coca-Cola India Pvt Ltd",
+      "address": "Plot No. 110, Sector 5, IMT Manesar, Gurugram, Haryana",
+      "phone": "18001882653",
+      "gstNumber": "06AACCC1100F1Z4",
+      "createdAt": "2026-06-21T14:26:33.019Z",
+      "updatedAt": "2026-06-21T14:26:33.019Z"
+    },
+    {
+      "id": "97742414-3866-4df8-840a-640ede1c1676",
+      "name": "Gujarat Cooperative Milk Marketing Federation",
+      "address": "Amul Dairy Road, Anand, Gujarat",
+      "phone": "18002583333",
+      "gstNumber": "24AAAAG1000A1Z5",
+      "createdAt": "2026-06-21T14:26:33.023Z",
+      "updatedAt": "2026-06-21T14:26:33.023Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "a51aa033-7a37-4d50-9a78-1d12f4c87d68",
+      "companyId": "f3fc0002-e071-436c-8f19-3476ee8e18f0"
+    },
+    {
+      "id": "0d449119-fc50-4a0a-96c6-94e5145100d6",
+      "companyId": "d82f7a52-b453-441d-8c81-48cfbcab6f4d"
+    },
+    {
+      "id": "e0eb5e56-70b0-4fd3-b90e-bd0761672796",
+      "companyId": "fa482904-8927-4ac9-9b22-2eb100240199"
+    },
+    {
+      "id": "d879cfae-f6ba-4381-84ee-068f1a77e9be",
+      "companyId": "97742414-3866-4df8-840a-640ede1c1676"
+    }
+  ],
+  "stockEntries": [
+    {
+      "id": "b8d521a2-3578-4894-8189-e5ab35c9ab28",
+      "supplierName": "Coca Cola Bottlers Ltd."
+    },
+    {
+      "id": "28afa9ff-2a6c-40a8-a3bb-c52cfed3024d",
+      "supplierName": "Pepsico India"
+    },
+    {
+      "id": "fe06af00-90d1-485c-b818-4eff7a634b4a",
+      "supplierName": "System Initialization"
+    },
+    {
+      "id": "03c77225-7155-4578-8ad0-4cf84c03d2dc",
+      "supplierName": "System Initialization"
+    }
+  ]
+}

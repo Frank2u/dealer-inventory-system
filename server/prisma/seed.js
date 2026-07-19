@@ -19,7 +19,7 @@ async function main() {
   await prisma.delivery.deleteMany({});
   await prisma.stockEntry.deleteMany({});
   await prisma.product.deleteMany({});
-  await prisma.company.deleteMany({});
+  await prisma.supplier.deleteMany({});
   await prisma.category.deleteMany({});
   await prisma.areaMapping.deleteMany({});
   await prisma.shop.deleteMany({});
@@ -48,9 +48,9 @@ async function main() {
   ]);
   console.log(`Created ${categories.length} categories.`);
 
-  // 3.5 Create Companies
+  // 3.5 Create Suppliers
   const companies = await Promise.all([
-    prisma.company.create({
+    prisma.supplier.create({
       data: {
         name: 'Coca-Cola India Pvt Ltd',
         address: 'Plot No. 110, Sector 5, IMT Manesar, Gurugram, Haryana',
@@ -58,7 +58,7 @@ async function main() {
         gstNumber: '06AACCC1100F1Z4'
       }
     }),
-    prisma.company.create({
+    prisma.supplier.create({
       data: {
         name: 'PepsiCo India Holdings Pvt Ltd',
         address: 'Level 5, Tower C, DLF Cyber City, Phase III, Gurugram, Haryana',
@@ -66,7 +66,7 @@ async function main() {
         gstNumber: '06AABCP5600K2Z2'
       }
     }),
-    prisma.company.create({
+    prisma.supplier.create({
       data: {
         name: 'Gujarat Cooperative Milk Marketing Federation',
         address: 'Amul Dairy Road, Anand, Gujarat',
@@ -74,7 +74,7 @@ async function main() {
         gstNumber: '24AAAAG1000A1Z5'
       }
     }),
-    prisma.company.create({
+    prisma.supplier.create({
       data: {
         name: 'Henkel Adhesives Technologies India Pvt Ltd',
         address: 'Vikas Centre, 5th Floor, Santacruz East, Mumbai, Maharashtra',
@@ -83,7 +83,7 @@ async function main() {
       }
     })
   ]);
-  console.log(`Created ${companies.length} companies.`);
+  console.log(`Created ${companies.length} suppliers.`);
 
   // 4. Create Products
   const products = await Promise.all([
@@ -97,7 +97,7 @@ async function main() {
         unitType: 'case',
         purchasePrice: 280.0,
         sellingPrice: 360.0,
-        companyId: companies[0].id,
+        supplierId: companies[0].id,
         mrp: 400.0,
         discountPercent: '10% - 15%',
         currentStock: 50,
@@ -114,7 +114,7 @@ async function main() {
         unitType: 'box',
         purchasePrice: 450.0,
         sellingPrice: 540.0,
-        companyId: companies[1].id,
+        supplierId: companies[1].id,
         mrp: 600.0,
         discountPercent: '12% - 18%',
         currentStock: 30,
@@ -131,7 +131,7 @@ async function main() {
         unitType: 'crate',
         purchasePrice: 660.0,
         sellingPrice: 720.0,
-        companyId: companies[2].id,
+        supplierId: companies[2].id,
         mrp: 750.0,
         discountPercent: '5% - 8%',
         currentStock: 15,
@@ -148,7 +148,7 @@ async function main() {
         unitType: 'box',
         purchasePrice: 850.0,
         sellingPrice: 950.0,
-        companyId: companies[3].id,
+        supplierId: companies[3].id,
         mrp: 1000.0,
         discountPercent: '8% - 12%',
         currentStock: 8,
@@ -230,10 +230,11 @@ async function main() {
   // 6. Create some sample StockEntries (Incoming)
   await prisma.stockEntry.create({
     data: {
-      supplierName: 'Coca Cola Bottlers Ltd.',
+      supplierId: companies[0].id,
       invoiceNumber: 'INV-CC-9901',
       productId: products[0].id,
       quantity: 50,
+      remainingStock: 50,
       costPrice: 280.0,
       notes: 'Initial stock intake from factory distributor.',
     },
@@ -241,10 +242,11 @@ async function main() {
 
   await prisma.stockEntry.create({
     data: {
-      supplierName: 'Pepsico India',
+      supplierId: companies[1].id,
       invoiceNumber: 'INV-LAY-4411',
       productId: products[1].id,
       quantity: 30,
+      remainingStock: 30,
       costPrice: 450.0,
       notes: 'Intake for Lay Potato Chips.',
     },

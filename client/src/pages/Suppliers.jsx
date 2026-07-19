@@ -7,79 +7,74 @@ import { Input } from '../components/ui/Input.jsx';
 import { Card, CardContent } from '../components/ui/Card.jsx';
 import { Dialog } from '../components/ui/Dialog.jsx';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/Table.jsx';
-import { Search, Plus, Edit2, Trash2, MapPin } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Building2 } from 'lucide-react';
 
-export const AreaMapping = () => {
+export const Suppliers = () => {
   const toast = useToast();
   const navigate = useNavigate();
-  const [areas, setAreas] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Modals state
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedArea, setSelectedArea] = useState(null);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
 
-  const fetchAreas = async () => {
+  const fetchSuppliers = async () => {
     try {
-      const data = await api.areas.getAll();
-      setAreas(data);
+      const data = await api.suppliers.getAll(search);
+      setSuppliers(data);
     } catch (err) {
-      toast.error('Failed to load area mappings');
+      toast.error('Failed to load suppliers');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAreas();
-  }, []);
+    fetchSuppliers();
+  }, [search]);
 
   // Open form for Create
   const handleCreateOpen = () => {
-    navigate('/areas/new');
+    navigate('/suppliers/new');
   };
 
   // Open form for Edit
-  const handleEditOpen = (area) => {
-    navigate(`/areas/${area.id}/edit`);
+  const handleEditOpen = (supplier) => {
+    navigate(`/suppliers/${supplier.id}/edit`);
   };
 
   // Open Delete Dialog
-  const handleDeleteOpen = (area) => {
-    setSelectedArea(area);
+  const handleDeleteOpen = (supplier) => {
+    setSelectedSupplier(supplier);
     setIsDeleteOpen(true);
   };
 
   // Confirm Delete
   const handleDeleteConfirm = async () => {
     try {
-      await api.areas.delete(selectedArea.id);
-      toast.success('Area mapping deleted successfully');
+      await api.suppliers.delete(selectedSupplier.id);
+      toast.success('Supplier deleted successfully');
       setIsDeleteOpen(false);
-      fetchAreas();
+      fetchSuppliers();
     } catch (err) {
       toast.error(err.message || 'Deletion failed');
     }
   };
 
-  const filteredAreas = areas.filter(a => 
-    a.areaName.toLowerCase().includes(search.toLowerCase()) ||
-    a.codePrefix.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <div className="p-6 flex flex-col gap-6 animate-fade-in">
+    <div className="p-6 flex flex-col gap-6 animate-fade-in text-slate-200">
       
       {/* Header controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-150 flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-indigo-400" />
-            Area Code Mapping
+            <Building2 className="h-5 w-5 text-indigo-400" />
+            Registered Suppliers
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Map neighborhood/distribution areas to short code prefixes for auto-generating shop codes (e.g. SN for Singallur).
+            Manage product manufacturers, suppliers, and billing details.
           </p>
         </div>
 
@@ -89,7 +84,7 @@ export const AreaMapping = () => {
               <Search className="h-4 w-4" />
             </span>
             <Input
-              placeholder="Search area or code..."
+              placeholder="Search by name or GST..."
               className="pl-9 py-1.5"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -98,56 +93,64 @@ export const AreaMapping = () => {
 
           <Button onClick={handleCreateOpen} variant="primary" className="py-2 inline-flex items-center gap-1.5 whitespace-nowrap">
             <Plus className="h-4 w-4" />
-            Add Area Code
+            Add Supplier
           </Button>
         </div>
       </div>
 
-      {/* Areas Table */}
+      {/* Suppliers Table */}
       <Card>
         <CardContent className="p-0">
           {loading ? (
-            <div className="p-10 text-center text-slate-500 font-semibold animate-pulse">Loading area mappings...</div>
-          ) : filteredAreas.length === 0 ? (
-            <div className="p-10 text-center text-slate-500 font-semibold">No area mappings found</div>
+            <div className="p-10 text-center text-slate-500 font-semibold animate-pulse">Loading suppliers...</div>
+          ) : suppliers.length === 0 ? (
+            <div className="p-10 text-center text-slate-500 font-semibold">No suppliers registered yet</div>
           ) : (
             <div className="overflow-x-auto w-full">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Area Name</TableHead>
-                    <TableHead>Code Prefix</TableHead>
-                    <TableHead>Created Date</TableHead>
+                    <TableHead>Supplier Name</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Contact Phone</TableHead>
+                    <TableHead>GST Number</TableHead>
+                    <TableHead>Linked Products</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAreas.map((area) => (
-                    <TableRow key={area.id}>
+                  {suppliers.map((supplier) => (
+                    <TableRow key={supplier.id}>
                       <TableCell className="font-bold text-slate-200">
-                        {area.areaName}
+                        {supplier.name}
                       </TableCell>
-                      <TableCell className="font-mono text-sm font-bold text-indigo-400">
-                        {area.codePrefix}
+                      <TableCell className="text-slate-350 max-w-[200px] truncate" title={supplier.address}>
+                        {supplier.address || 'N/A'}
                       </TableCell>
                       <TableCell className="text-slate-400">
-                        {new Date(area.createdAt).toLocaleDateString('en-IN')}
+                        {supplier.phone || 'N/A'}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-indigo-400">
+                        {supplier.gstNumber || 'N/A'}
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-300">
+                        {supplier.products?.length || 0} items
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
-                            onClick={() => handleEditOpen(area)}
+                            onClick={() => handleEditOpen(supplier)}
                             variant="ghost"
                             size="sm"
-                            title="Edit Area Mapping"
+                            title="Edit Supplier Details"
                           >
                             <Edit2 className="h-4 w-4 text-indigo-400" />
                           </Button>
                           <Button
-                            onClick={() => handleDeleteOpen(area)}
+                            onClick={() => handleDeleteOpen(supplier)}
                             variant="ghost"
                             size="sm"
-                            title="Delete Area Mapping"
+                            title="Delete Supplier"
                           >
                             <Trash2 className="h-4 w-4 text-rose-400" />
                           </Button>
@@ -168,7 +171,7 @@ export const AreaMapping = () => {
       <Dialog
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
-        title="Confirm Deletion"
+        title="Confirm Supplier Deletion"
         maxWidth="sm"
       >
         <div className="flex flex-col gap-4 text-center py-2">
@@ -176,15 +179,15 @@ export const AreaMapping = () => {
             <Trash2 className="h-5 w-5" />
           </div>
           <div className="flex flex-col gap-1">
-            <h4 className="font-bold text-slate-200">Remove Area Code Mapping?</h4>
+            <h4 className="font-bold text-slate-200">Delete supplier record?</h4>
             <p className="text-xs text-slate-400">
-              Are you sure you want to delete the mapping for <span className="text-slate-250 font-bold">{selectedArea?.areaName}</span>? 
-              This mapping will be removed. Note that you cannot delete an area mapping if shops are still registered under it.
+              Are you sure you want to delete <span className="text-slate-250 font-bold">{selectedSupplier?.name}</span>? 
+              This action cannot be undone and will fail if any catalog products are linked to this supplier.
             </p>
           </div>
           <div className="flex justify-center gap-3 mt-4 border-t border-slate-800/80 pt-4">
             <Button onClick={() => setIsDeleteOpen(false)} variant="secondary">Cancel</Button>
-            <Button onClick={handleDeleteConfirm} variant="destructive">Delete Mapping</Button>
+            <Button onClick={handleDeleteConfirm} variant="destructive">Delete Supplier</Button>
           </div>
         </div>
       </Dialog>
@@ -193,4 +196,4 @@ export const AreaMapping = () => {
   );
 };
 
-export default AreaMapping;
+export default Suppliers;

@@ -22,27 +22,11 @@ export const Shops = () => {
   const [loading, setLoading] = useState(true);
 
   // Modals state
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedShop, setSelectedShop] = useState(null);
   const [historyData, setHistoryData] = useState({ deliveries: [], payments: [] });
   const [historyLoading, setHistoryLoading] = useState(false);
-
-  // Form inputs
-  const [formData, setFormData] = useState({
-    name: '',
-    ownerName: '',
-    phone: '',
-    alternatePhone: '',
-    address: '',
-    area: '',
-    gstNumber: '',
-    creditLimit: '0',
-    notes: '',
-    username: '',
-    password: ''
-  });
 
   const fetchShops = async () => {
     try {
@@ -74,63 +58,12 @@ export const Shops = () => {
 
   // Open Form for Create
   const handleCreateOpen = () => {
-    setSelectedShop(null);
-    setFormData({
-      name: '',
-      ownerName: '',
-      phone: '',
-      alternatePhone: '',
-      address: '',
-      area: '',
-      gstNumber: '',
-      creditLimit: '0',
-      notes: '',
-      username: '',
-      password: ''
-    });
-    setIsFormOpen(true);
+    navigate('/shops/new');
   };
 
   // Open Form for Edit
   const handleEditOpen = (shop) => {
-    setSelectedShop(shop);
-    setFormData({
-      name: shop.name,
-      ownerName: shop.ownerName,
-      phone: shop.phone,
-      alternatePhone: shop.alternatePhone || '',
-      address: shop.address,
-      area: shop.area,
-      gstNumber: shop.gstNumber || '',
-      creditLimit: String(shop.creditLimit),
-      notes: shop.notes || '',
-      username: shop.username || '',
-      password: ''
-    });
-    setIsFormOpen(true);
-  };
-
-  // Submit Shop (Create / Update)
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.ownerName || !formData.phone || !formData.address || !formData.area) {
-      toast.error('Please fill in all mandatory fields');
-      return;
-    }
-
-    try {
-      if (selectedShop) {
-        await api.shops.update(selectedShop.id, formData);
-        toast.success('Shop updated successfully');
-      } else {
-        await api.shops.create(formData);
-        toast.success('Shop registered successfully');
-      }
-      setIsFormOpen(false);
-      fetchShops();
-    } catch (err) {
-      toast.error(err.message || 'Action failed');
-    }
+    navigate(`/shops/${shop.id}/edit`);
   };
 
   // Open Delete confirmation
@@ -222,214 +155,100 @@ export const Shops = () => {
           ) : shops.length === 0 ? (
             <div className="p-10 text-center text-slate-500 font-semibold">No registered shops found</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Shop Name</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Area</TableHead>
-                  <TableHead>GST Number</TableHead>
-                  <TableHead>Credit Limit</TableHead>
-                  <TableHead>Current Due</TableHead>
-                  <TableHead>Total Profit</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {shops.map((shop) => (
-                  <TableRow key={shop.id}>
-                    <TableCell className="font-mono text-xs font-bold text-indigo-400">
-                      {shop.shopCode || 'N/A'}
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-200">
-                      <div>
-                        {shop.name}
-                        {shop.notes && <p className="text-[10px] text-slate-500 font-medium truncate max-w-xs">{shop.notes}</p>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-slate-300">{shop.ownerName}</TableCell>
-                    <TableCell className="font-semibold text-slate-400">
-                      <div className="flex flex-col text-xs leading-tight">
-                        <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3 text-slate-600" />{shop.phone}</span>
-                        {shop.alternatePhone && <span className="text-[10px] text-slate-600 pl-4">Alt: {shop.alternatePhone}</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-slate-300">
-                      <span className="inline-flex items-center gap-1 text-xs"><MapPin className="h-3.5 w-3.5 text-indigo-500/60" />{shop.area}</span>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{shop.gstNumber || 'N/A'}</TableCell>
-                    <TableCell className="font-semibold text-slate-400">₹{shop.creditLimit.toLocaleString('en-IN')}</TableCell>
-                    <TableCell>
-                      <span className={`font-bold text-sm ${shop.currentDue > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
-                        ₹{shop.currentDue.toLocaleString('en-IN')}
-                      </span>
-                    </TableCell>
-                    <TableCell className="font-bold text-emerald-450 text-sm">
-                      ₹{(shop.profit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          onClick={() => navigate(`/deliveries?shopId=${shop.id}`)}
-                          variant="ghost"
-                          size="sm"
-                          title="View Deliveries"
-                        >
-                          <Truck className="h-4 w-4 text-emerald-400" />
-                        </Button>
-                        <Button
-                          onClick={() => handleHistoryOpen(shop)}
-                          variant="ghost"
-                          size="sm"
-                          title="Ledger History"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleEditOpen(shop)}
-                          variant="ghost"
-                          size="sm"
-                          title="Edit Details"
-                        >
-                          <Edit2 className="h-4 w-4 text-indigo-400" />
-                        </Button>
-                        <Button
-                          onClick={() => handleDeleteOpen(shop)}
-                          variant="ghost"
-                          size="sm"
-                          title="Delete Shop"
-                        >
-                          <Trash2 className="h-4 w-4 text-rose-400" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Shop Name</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Area</TableHead>
+                    <TableHead>GST Number</TableHead>
+                    <TableHead>Credit Limit</TableHead>
+                    <TableHead>Current Due</TableHead>
+                    <TableHead>Total Profit</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {shops.map((shop) => (
+                    <TableRow key={shop.id}>
+                      <TableCell className="font-mono text-xs font-bold text-indigo-400">
+                        {shop.shopCode || 'N/A'}
+                      </TableCell>
+                      <TableCell className="font-bold text-slate-200">
+                        <div>
+                          {shop.name}
+                          {shop.notes && <p className="text-[10px] text-slate-500 font-medium truncate max-w-xs">{shop.notes}</p>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-300">{shop.ownerName}</TableCell>
+                      <TableCell className="font-semibold text-slate-400">
+                        <div className="flex flex-col text-xs leading-tight">
+                          <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3 text-slate-600" />{shop.phone}</span>
+                          {shop.alternatePhone && <span className="text-[10px] text-slate-600 pl-4">Alt: {shop.alternatePhone}</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-slate-300">
+                        <span className="inline-flex items-center gap-1 text-xs"><MapPin className="h-3.5 w-3.5 text-indigo-500/60" />{shop.area}</span>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{shop.gstNumber || 'N/A'}</TableCell>
+                      <TableCell className="font-semibold text-slate-400">₹{shop.creditLimit.toLocaleString('en-IN')}</TableCell>
+                      <TableCell>
+                        <span className={`font-bold text-sm ${shop.currentDue > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                          ₹{shop.currentDue.toLocaleString('en-IN')}
+                        </span>
+                      </TableCell>
+                      <TableCell className="font-bold text-emerald-455 text-sm">
+                        ₹{(shop.profit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            onClick={() => navigate(`/deliveries?shopId=${shop.id}`)}
+                            variant="ghost"
+                            size="sm"
+                            title="View Deliveries"
+                          >
+                            <Truck className="h-4 w-4 text-emerald-400" />
+                          </Button>
+                          <Button
+                            onClick={() => handleHistoryOpen(shop)}
+                            variant="ghost"
+                            size="sm"
+                            title="Ledger History"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={() => handleEditOpen(shop)}
+                            variant="ghost"
+                            size="sm"
+                            title="Edit Details"
+                          >
+                            <Edit2 className="h-4 w-4 text-indigo-400" />
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteOpen(shop)}
+                            variant="ghost"
+                            size="sm"
+                            title="Delete Shop"
+                          >
+                            <Trash2 className="h-4 w-4 text-rose-400" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Dialog
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        title={selectedShop ? 'Edit Retailer Shop' : 'Register New Retailer Shop'}
-        maxWidth="lg"
-      >
-        <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2.5">
-            <div>
-              <Input
-                label="Shop Name *"
-                placeholder="e.g. Super Mart Grocery"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Owner Name *"
-                placeholder="e.g. John Doe"
-                value={formData.ownerName}
-                onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="GST Registration Number"
-                placeholder="e.g. 29ABCDE1234F1Z5"
-                value={formData.gstNumber}
-                onChange={(e) => setFormData({ ...formData, gstNumber: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Primary Phone *"
-                placeholder="e.g. 9876543210"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Alternate Phone"
-                placeholder="e.g. 9876543211"
-                value={formData.alternatePhone}
-                onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Retailer Portal Username"
-                placeholder={selectedShop ? "e.g. supermart" : "Defaults to lowercase shop code"}
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Retailer Login Password"
-                type="password"
-                placeholder={selectedShop ? "•••••••• (Leave blank to keep same)" : "Defaults to phone number"}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-            <div>
-              <Select
-                label="Area/Location *"
-                value={formData.area}
-                onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-              >
-                <option value="" className="bg-slate-900">-- Select Area --</option>
-                {areas.map(a => (
-                  <option key={a.id} value={a.areaName} className="bg-slate-900">
-                    {a.areaName} ({a.codePrefix})
-                  </option>
-                ))}
-              </Select>
-              {areas.length === 0 && (
-                <span className="text-[10px] text-amber-405 font-semibold mt-1 block">
-                  Please define area codes in "Area Codes" page first!
-                </span>
-              )}
-            </div>
-            <div className="md:col-span-2">
-              <Input
-                label="Delivery Address *"
-                placeholder="Full delivery coordinates"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-            <div>
-              <Input
-                label="Allowed Credit Limit (INR)"
-                type="number"
-                placeholder="0"
-                value={formData.creditLimit}
-                onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
-              />
-            </div>
-            <div className="md:col-span-3 flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-400">Merchant Notes / Delivery Preferences</label>
-              <textarea
-                className="w-full bg-slate-900/60 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[45px] transition-all"
-                placeholder="Prefer morning deliveries. Pays via UPI."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3 mt-4 border-t border-slate-800/80 pt-4">
-            <Button onClick={() => setIsFormOpen(false)} variant="secondary">Cancel</Button>
-            <Button type="submit" variant="primary">Save Shop</Button>
-          </div>
-        </form>
-      </Dialog>
+
 
       {/* 4. Ledger History Modal Dialog */}
       <Dialog

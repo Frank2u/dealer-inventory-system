@@ -23,7 +23,12 @@ export const getAllProducts = async (req, res, next) => {
       include: {
         category: true,
         deliveryItems: true,
-        company: true
+        supplier: true,
+        stockEntries: {
+          where: {
+            remainingStock: { gt: 0 }
+          }
+        }
       },
       orderBy: { name: 'asc' }
     });
@@ -34,10 +39,20 @@ export const getAllProducts = async (req, res, next) => {
         return sum + profit;
       }, 0);
       
-      const { deliveryItems, ...prodData } = p;
+      const lots = (p.stockEntries || []).sort((a, b) => {
+        if (a.expiryDate && b.expiryDate) {
+          return new Date(a.expiryDate) - new Date(b.expiryDate);
+        }
+        if (a.expiryDate && !b.expiryDate) return -1;
+        if (!a.expiryDate && b.expiryDate) return 1;
+        return new Date(a.date) - new Date(b.date);
+      });
+
+      const { deliveryItems, stockEntries, ...prodData } = p;
       return {
         ...prodData,
-        profit: totalProfit
+        profit: totalProfit,
+        lots
       };
     });
 
@@ -58,14 +73,36 @@ export const getProductById = async (req, res, next) => {
     const { id } = req.params;
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { category: true, company: true }
+      include: {
+        category: true,
+        supplier: true,
+        stockEntries: {
+          where: {
+            remainingStock: { gt: 0 }
+          }
+        }
+      }
     });
 
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    res.json(product);
+    const lots = (product.stockEntries || []).sort((a, b) => {
+      if (a.expiryDate && b.expiryDate) {
+        return new Date(a.expiryDate) - new Date(b.expiryDate);
+      }
+      if (a.expiryDate && !b.expiryDate) return -1;
+      if (!a.expiryDate && b.expiryDate) return 1;
+      return new Date(a.date) - new Date(b.date);
+    });
+
+    const { stockEntries, ...prodData } = product;
+
+    res.json({
+      ...prodData,
+      lots
+    });
   } catch (error) {
     next(error);
   }
@@ -73,9 +110,9 @@ export const getProductById = async (req, res, next) => {
 
 export const createProduct = async (req, res, next) => {
   try {
-    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyId, mrp, discountPercent, gstPercent } = req.body;
+    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, supplierId, mrp, discountPercent, gstPercent } = req.body;
 
-    if (!name || !sku || !brand || !categoryId || !purchasePrice || !sellingPrice) {
+    if (!name || !sku || !brand || !categoryId || !purchasePrice || !sellingPrice || !supplierId) {
       return res.status(400).json({ message: 'Missing required product fields' });
     }
 
@@ -83,6 +120,19 @@ export const createProduct = async (req, res, next) => {
     const existingSku = await prisma.product.findUnique({ where: { sku } });
     if (existingSku) {
       return res.status(400).json({ message: 'A product with this SKU already exists' });
+    }
+
+    // Supplier+Name uniqueness validation
+    const existingProduct = await prisma.product.findUnique({
+      where: {
+        supplierId_name: {
+          supplierId,
+          name
+        }
+      }
+    });
+    if (existingProduct) {
+      return res.status(400).json({ message: 'A product with this name is already registered for this supplier' });
     }
 
     const product = await prisma.product.create({
@@ -95,7 +145,7 @@ export const createProduct = async (req, res, next) => {
         unitType: unitType || 'pcs',
         purchasePrice: parseFloat(purchasePrice),
         sellingPrice: parseFloat(sellingPrice),
-        companyId: companyId || null,
+        supplierId,
         mrp: parseFloat(mrp) || 0.0,
         discountPercent: discountPercent || '',
         gstPercent: parseFloat(gstPercent) || 0.0,
@@ -105,7 +155,7 @@ export const createProduct = async (req, res, next) => {
       },
       include: {
         category: true,
-        company: true
+        supplier: true
       }
     });
 
@@ -118,7 +168,7 @@ export const createProduct = async (req, res, next) => {
 export const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, companyId, mrp, discountPercent, gstPercent } = req.body;
+    const { name, sku, brand, categoryId, lotSize, unitType, purchasePrice, sellingPrice, currentStock, minStockAlert, expiryDate, supplierId, mrp, discountPercent, gstPercent } = req.body;
 
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
@@ -129,6 +179,23 @@ export const updateProduct = async (req, res, next) => {
       const existingSku = await prisma.product.findUnique({ where: { sku } });
       if (existingSku) {
         return res.status(400).json({ message: 'A product with this SKU already exists' });
+      }
+    }
+
+    // Supplier+Name uniqueness validation
+    if ((name && name !== product.name) || (supplierId && supplierId !== product.supplierId)) {
+      const targetName = name || product.name;
+      const targetSupplierId = supplierId || product.supplierId;
+      const duplicate = await prisma.product.findUnique({
+        where: {
+          supplierId_name: {
+            supplierId: targetSupplierId,
+            name: targetName
+          }
+        }
+      });
+      if (duplicate && duplicate.id !== id) {
+        return res.status(400).json({ message: 'A product with this name is already registered for this supplier' });
       }
     }
 
@@ -143,7 +210,7 @@ export const updateProduct = async (req, res, next) => {
         unitType,
         purchasePrice: purchasePrice !== undefined ? parseFloat(purchasePrice) : undefined,
         sellingPrice: sellingPrice !== undefined ? parseFloat(sellingPrice) : undefined,
-        companyId: companyId !== undefined ? (companyId || null) : undefined,
+        supplierId: supplierId !== undefined ? (supplierId || undefined) : undefined,
         mrp: mrp !== undefined ? parseFloat(mrp) : undefined,
         discountPercent,
         gstPercent: gstPercent !== undefined ? parseFloat(gstPercent) : undefined,
@@ -153,7 +220,7 @@ export const updateProduct = async (req, res, next) => {
       },
       include: {
         category: true,
-        company: true
+        supplier: true
       }
     });
 

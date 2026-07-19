@@ -88,16 +88,16 @@ export const api = {
     getCategories: () => request.get('/products/categories'),
     createCategory: (name) => request.post('/products/categories', { name })
   },
-  companies: {
+  suppliers: {
     getAll: (search = '') => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
-      return request.get(`/companies?${params.toString()}`);
+      return request.get(`/suppliers?${params.toString()}`);
     },
-    getById: (id) => request.get(`/companies/${id}`),
-    create: (data) => request.post('/companies', data),
-    update: (id, data) => request.put(`/companies/${id}`, data),
-    delete: (id) => request.delete(`/companies/${id}`)
+    getById: (id) => request.get(`/suppliers/${id}`),
+    create: (data) => request.post('/suppliers', data),
+    update: (id, data) => request.put(`/suppliers/${id}`, data),
+    delete: (id) => request.delete(`/suppliers/${id}`)
   },
   stock: {
     getAll: () => request.get('/stock'),

@@ -4,6 +4,7 @@ export const getAllStockEntries = async (req, res, next) => {
   try {
     const entries = await prisma.stockEntry.findMany({
       include: {
+        supplier: true,
         product: {
           include: {
             category: true
@@ -20,9 +21,9 @@ export const getAllStockEntries = async (req, res, next) => {
 
 export const createStockEntry = async (req, res, next) => {
   try {
-    const { supplierName, invoiceNumber, productId, quantity, costPrice, date, expiryDate, notes } = req.body;
+    const { supplierId, invoiceNumber, productId, quantity, costPrice, date, expiryDate, notes } = req.body;
 
-    if (!supplierName || !invoiceNumber || !productId || !quantity || !costPrice) {
+    if (!supplierId || !invoiceNumber || !productId || !quantity || !costPrice) {
       return res.status(400).json({ message: 'Missing required stock entry fields' });
     }
 
@@ -44,10 +45,11 @@ export const createStockEntry = async (req, res, next) => {
       // 2. Create StockEntry
       const entry = await tx.stockEntry.create({
         data: {
-          supplierName,
+          supplierId,
           invoiceNumber,
           productId,
           quantity: qty,
+          remainingStock: qty,
           costPrice: price,
           date: date ? new Date(date) : new Date(),
           expiryDate: expiryDate ? new Date(expiryDate) : null,

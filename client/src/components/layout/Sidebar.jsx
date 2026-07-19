@@ -21,10 +21,10 @@ export const Sidebar = ({ isOpen, toggleSidebar }) => {
 
   const adminNavItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard className="h-4.5 w-4.5" /> },
-    { name: 'Shops', path: '/shops', icon: <Store className="h-4.5 w-4.5" /> },
+    { name: 'Suppliers', path: '/suppliers', icon: <Building2 className="h-4.5 w-4.5" /> },
     { name: 'Products', path: '/products', icon: <Package className="h-4.5 w-4.5" /> },
-    { name: 'Companies', path: '/companies', icon: <Building2 className="h-4.5 w-4.5" /> },
-    { name: 'Incoming Stock', path: '/stock', icon: <Import className="h-4.5 w-4.5" /> },
+    { name: 'Stocks', path: '/stocks', icon: <Import className="h-4.5 w-4.5" /> },
+    { name: 'Shops', path: '/shops', icon: <Store className="h-4.5 w-4.5" /> },
     { name: 'Deliveries', path: '/deliveries', icon: <Truck className="h-4.5 w-4.5" /> },
     { name: 'Payments', path: '/payments', icon: <IndianRupee className="h-4.5 w-4.5" /> },
     { name: 'Reports', path: '/reports', icon: <FileBarChart className="h-4.5 w-4.5" /> },

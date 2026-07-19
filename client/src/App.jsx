@@ -10,13 +10,20 @@ import Dashboard from './pages/Dashboard.jsx';
 import CustomerDashboard from './pages/CustomerDashboard.jsx';
 import Shops from './pages/Shops.jsx';
 import Products from './pages/Products.jsx';
-import Companies from './pages/Companies.jsx';
-import IncomingStock from './pages/IncomingStock.jsx';
+import CreateProduct from './pages/CreateProduct.jsx';
+import Suppliers from './pages/Suppliers.jsx';
+import CreateSupplier from './pages/CreateSupplier.jsx';
+import Stocks from './pages/Stocks.jsx';
+import CreateStock from './pages/CreateStock.jsx';
 import Deliveries from './pages/Deliveries.jsx';
+import CreateDelivery from './pages/CreateDelivery.jsx';
+import CreateShop from './pages/CreateShop.jsx';
 import Payments from './pages/Payments.jsx';
+import CreatePayment from './pages/CreatePayment.jsx';
 import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
 import AreaMapping from './pages/AreaMapping.jsx';
+import CreateArea from './pages/CreateArea.jsx';
 
 // Private Layout wrapper guarding authenticated routes
 const AppLayout = () => {
@@ -113,14 +120,26 @@ function App() {
               {/* Admin Routes */}
               <Route index element={<Dashboard />} />
               <Route path="shops" element={<Shops />} />
+              <Route path="shops/new" element={<CreateShop />} />
+              <Route path="shops/:id/edit" element={<CreateShop />} />
               <Route path="products" element={<Products />} />
-              <Route path="companies" element={<Companies />} />
-              <Route path="stock" element={<IncomingStock />} />
+              <Route path="products/new" element={<CreateProduct />} />
+              <Route path="products/:id/edit" element={<CreateProduct />} />
+              <Route path="suppliers" element={<Suppliers />} />
+              <Route path="suppliers/new" element={<CreateSupplier />} />
+              <Route path="suppliers/:id/edit" element={<CreateSupplier />} />
+              <Route path="stocks" element={<Stocks />} />
+              <Route path="stocks/new" element={<CreateStock />} />
               <Route path="deliveries" element={<Deliveries />} />
+              <Route path="deliveries/new" element={<CreateDelivery />} />
+              <Route path="deliveries/:id/dispatch" element={<CreateDelivery />} />
               <Route path="payments" element={<Payments />} />
+              <Route path="payments/new" element={<CreatePayment />} />
               <Route path="reports" element={<Reports />} />
               <Route path="settings" element={<Settings />} />
               <Route path="areas" element={<AreaMapping />} />
+              <Route path="areas/new" element={<CreateArea />} />
+              <Route path="areas/:id/edit" element={<CreateArea />} />
               
               {/* Customer Routes */}
               <Route path="customer/dashboard" element={<CustomerDashboard />} />
